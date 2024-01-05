@@ -4,6 +4,7 @@ from operator import itemgetter
 import os
 import datetime
 import logging
+import argparse 
 
 from utils import load_queries, load_corpus, load_results
 from utils import LoggingHandler
@@ -32,10 +33,11 @@ if __name__ == '__main__':
 
     #### Load data
     queries = load_queries(os.path.join(args.dataset, 'queries.jsonl'))
-    corpus = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
+    corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
     results = load_results(args.input_run, topk=args.top_k)
 
     #### Saving benchmark times
+    f = open(args.output_run, 'w')
     time_taken_all = {}
 
     for query_id in queries:
@@ -49,7 +51,7 @@ if __name__ == '__main__':
         sentence_pairs = [[query, corpus_texts[docid]] for docid in result]
         scores = reranker.predict(sentence_pairs, batch_size=args.batch_size, show_progress_bar=False)
         hits = {result[idx]: scores[idx] for idx in range(len(scores))}            
-        sorted_results = {k: v for k,v in sorted(hits.items(), key=itemgetter(1), reverse=True)} 
+        sorted_result = {k: v for k,v in sorted(hits.items(), key=itemgetter(1), reverse=True)} 
         end = datetime.datetime.now()
         
         #### Measuring time taken in ms (milliseconds)
@@ -58,5 +60,12 @@ if __name__ == '__main__':
         time_taken_all[query_id] = time_taken
         logging.info("{}: {} {:.2f}ms".format(query_id, query, time_taken))
 
+        #### Write output results
+        for i, (doc_id, score) in enumerate(sorted_result.items()):
+            f.write("{} Q0 {} {} {} CE\n".format(
+                query_id, doc_id, str(i+1), score
+            ))
+
+    f.close()
     time_taken = list(time_taken_all.values())
     logging.info("Average time taken: {:.2f}ms".format(sum(time_taken)/len(time_taken_all)))

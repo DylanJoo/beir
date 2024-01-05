@@ -2,6 +2,7 @@ import os
 import collections
 import logging
 import tqdm
+import json
 
 class LoggingHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
