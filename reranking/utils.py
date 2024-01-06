@@ -27,7 +27,8 @@ def load_corpus(path):
             title = data.get('title', "").strip()
             text = data.get('text', "").strip()
             corpus[str(docid)] = title + " " + text
-    print('Example document', title + " " + text, 'total amount', len(corpus))
+    print('Example document:', title + " " + text, \
+            '\ntotal amount', len(corpus))
     return corpus
 
 def load_queries(path):
@@ -38,8 +39,23 @@ def load_queries(path):
             qid = data['_id']
             text = data['text'].strip()
             queries[str(qid)] = text
-    print('Example query', text, 'total amount', len(queries))
+    print('Example query:', text, \
+            '\ntotal amount', len(queries))
     return queries
+
+def load_pseudo_queries(path):
+    pcentric_queries = {}
+    with open(os.path.join(path), 'r') as f:
+        for line in f:
+            data = json.loads(line.strip())
+            docid = data['doc_id']
+            scores = data['relevance_scores']
+            texts = data['generated_query']
+            pcentric_queries[str(docid)] = [(t, s) for t, s in zip(texts, scores)]
+
+    print('Example pseudo query:', texts[0], scores[0], \
+            '\ntotal amount', len(pcentric_queries))
+    return pcentric_queries
 
 def load_results(path, topk=2000):
     input_run = collections.defaultdict(list)

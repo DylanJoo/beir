@@ -1,2 +1,5 @@
 run*/
 **/__pycache__/
+*.swp
+*/**/*jsonl
+readqg-*/*/*jsonl

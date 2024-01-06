@@ -1,55 +1,14 @@
-# | cut -f3 | sed ':a; N; $!ba; s/\n/|/g'
+# for name in arguana climate-fever dbpedia-entity fiqa nfcorpus scidocs scifact trec-covid webis-touche2020;do
+for crossencoder in ms-marco-MiniLM-L-6-v2 monot5-base-msmarco-10k;do
+    echo $crossencoder 
+    for name in arguana climate-fever scidocs trec-covid webis-touche2020;do
+        echo -e $name " ";
+        ~/trec_eval-9.0.7/trec_eval \
+            -c -m ndcg_cut.10 \
+            /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-$name.test.txt \
+            run.ce.top100/run.beir.$crossencoder.$name.txt \
+            | cut -f3 | sed ':a; N; $!ba; s/\n/|/g'
+    done
+    echo -e
+done
 
-echo trec-covid
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-trec-covid.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.trec-covid.txt 
-
-echo NFCorpus
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-nfcorpus.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.nfcorpus.txt
-
-echo FiQA
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-fiqa.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.fiqa.txt
-
-echo arguana
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-arguana.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.arguana.txt
-
-echo Touche
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-webis-touche2020.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.webis-touche2020.txt
-
-echo DBPedia
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-dbpedia-entity.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.dbpedia-entity.txt
-
-echo Scidocs
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-scidocs.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.scidocs.txt
-
-echo climate-fever
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-climate-fever.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.climate-fever.txt
-
-echo scifact
-~/trec_eval-9.0.7/trec_eval \
-  -c -m ndcg_cut.10 \
-  /home/jhju/pyserini/topics-and-qrels/qrels.beir-v1.0.0-scifact.test.txt \
-  run.ce.top100/run.beir.ms-marco-MiniLM-L-6-v2.scifact.txt
