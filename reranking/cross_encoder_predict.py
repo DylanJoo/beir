@@ -58,7 +58,7 @@ if __name__ == '__main__':
         time_taken = (end - start)
         time_taken = time_taken.total_seconds() * 1000
         time_taken_all[query_id] = time_taken
-        logging.info("{}: {} {:.2f}ms".format(query_id, query, time_taken))
+        logging.info("{}: {} {:.2f}ms".format(query_id, query[:100], time_taken))
 
         #### Write output results
         for i, (doc_id, score) in enumerate(sorted_result.items()):
