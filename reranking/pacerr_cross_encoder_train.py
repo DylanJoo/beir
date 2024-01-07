@@ -3,9 +3,11 @@ from sentence_transformers import InputExample
 from operator import itemgetter
 
 import os
+import json
 import datetime
 import logging
 import argparse 
+from pacerr_filter import filter_function_map
 
 from utils import load_corpus, load_results, load_pseudo_queries
 from utils import LoggingHandler
@@ -22,6 +24,8 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=1)
     parser.add_argument("--device", type=str, default='cuda')
+    # setting
+    parser.add_argument("--filtering", type=str, default="{}")
     args = parser.parse_args()
 
     #### Just some code to print debug information to stdout
@@ -37,15 +41,21 @@ if __name__ == '__main__':
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
     pseudo_queries = load_pseudo_queries(args.pseudo_queries)
 
+    #### Prepare a filter
+    filter_args = json.loads(args.filtering)
+    filter_name = filter_args.pop('name', 'testing')
+    filter_fn = filter_function_map[filter_name]
+
     #### Prepare examples
     train_samples = []
     for docid in pseudo_queries:
         document = corpus_texts[docid]
-        for query, score in pseudo_queries[docid]:
-            #### [SETTING I]: One positive and one negative
-            if score == 1 or score == 0:
-                train_samples.append(InputExample(texts=[query, document], label=score))
-                train_samples.append(InputExample(texts=[document, query], label=score))
+
+        #### Filtering
+        pairs = filter_fn(pseudo_queries[docid], **filter_args)
+        for query, score in pairs:
+            train_samples.append(InputExample(texts=[query, document], label=score))
+            train_samples.append(InputExample(texts=[document, query], label=score))
 
     #### Prepare dataloader
     train_dataloader = DataLoader(
@@ -65,26 +75,9 @@ if __name__ == '__main__':
             loss_fct=None,
             epochs=args.num_epochs,
             warmup_steps=0,
-            output_path=args.output_path
+            output_path=args.output_path # only save when evaluation
     )
-# cross encoder params
-# train_dataloader: DataLoader,
-# evaluator: SentenceEvaluator = None,
-# epochs: int = 1,
-# loss_fct = None,
-# activation_fct = nn.Identity(),
-# scheduler: str = 'WarmupLinear',
-# warmup_steps: int = 10000,
-# optimizer_class: Type[Optimizer] = torch.optim.AdamW,
-# optimizer_params: Dict[str, object] = {'lr': 2e-5},
-# weight_decay: float = 0.01,
-# evaluation_steps: int = 0,
-# output_path: str = None,
-# save_best_model: bool = True,
-# max_grad_norm: float = 1,
-# use_amp: bool = False,
-# callback: Callable[[float, int, int], None] = None,
-# show_progress_bar: bool = True
+    reranker.save(args.output_path)
 
     #### Measure time to 
     end = datetime.datetime.now()

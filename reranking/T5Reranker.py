@@ -24,6 +24,24 @@ class MonoT5Reranker(CrossEncoder):
         self.true_id = self.tokenizer.encode('true')[0]
         self.false_id = self.tokenizer.encode('false')[0]
 
+    def smart_batching_collate(self, batch):
+        texts = [[] for _ in range(len(batch[0].texts))]
+        labels = []
+
+        for example in batch:
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text.strip())
+
+            labels.append(example.label)
+
+        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+        labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
+
+        for name in tokenized:
+            tokenized[name] = tokenized[name].to(self._target_device)
+
+        return tokenized, labels
+
     def smart_batching_collate_text_only(self, batch):
         # add prompts
         texts = [[] for _ in range(len(batch[0]))]

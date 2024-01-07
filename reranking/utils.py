@@ -51,7 +51,9 @@ def load_pseudo_queries(path):
             docid = data['doc_id']
             scores = data['relevance_scores']
             texts = data['generated_query']
-            pcentric_queries[str(docid)] = [(t, s) for t, s in zip(texts, scores)]
+            to_return = [(t, s) for t, s in zip(texts, scores)]
+            # sort by (given) scores
+            pcentric_queries[str(docid)] = sorted(to_return, key=lambda x: x[1], reverse=True) 
 
     print('Example pseudo query:', texts[0], scores[0], \
             '\ntotal amount', len(pcentric_queries))
