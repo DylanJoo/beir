@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", type=str, default='cuda')
     # setting
     parser.add_argument("--filtering", type=str, default="{}")
+    parser.add_argument("--bidirectional", action='store_true', default=False)
     args = parser.parse_args()
 
     #### Just some code to print debug information to stdout
@@ -55,7 +56,8 @@ if __name__ == '__main__':
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
         for query, score in pairs:
             train_samples.append(InputExample(texts=[query, document], label=score))
-            train_samples.append(InputExample(texts=[document, query], label=score))
+            if args.bidirectional:
+                train_samples.append(InputExample(texts=[document, query], label=score))
 
     #### Prepare dataloader
     train_dataloader = DataLoader(
@@ -74,7 +76,7 @@ if __name__ == '__main__':
             train_dataloader=train_dataloader,
             loss_fct=None,
             epochs=args.num_epochs,
-            warmup_steps=0,
+            warmup_steps=len(train_dataloader),
             output_path=args.output_path # only save when evaluation
     )
     reranker.save(args.output_path)

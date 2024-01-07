@@ -3,3 +3,4 @@ run*/
 *.swp
 */**/*jsonl
 readqg-*/*/*jsonl
+checkpoints/

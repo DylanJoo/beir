@@ -17,3 +17,19 @@ for name in scidocs; do
             --device cuda
     done
 done
+
+# [bi-directional inputs]
+# calibrate_margin_ibn_dd-20000 # 0.0636
+# calibrate_margin_ibn_na-20000 # 0.0978
+# calibrate_margin_ibn_qd-20000 # 0.0474
+# calibrate_rank_ibn_dd-20000   # 0.0860
+# calibrate_rank_ibn_na-20000   # 0.0820
+# calibrate_rank_ibn_qd-20000   # 0.0485
+
+# [uni-directional inputs]
+# calibrate_margin_ibn_dd-20000
+# calibrate_margin_ibn_na-20000
+# calibrate_margin_ibn_qd-20000
+# calibrate_rank_ibn_dd-20000
+# calibrate_rank_ibn_na-20000
+# calibrate_rank_ibn_qd-20000
