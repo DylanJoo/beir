@@ -3,7 +3,6 @@ from typing import Dict, Type, Callable, List, Tuple
 from sentence_transformers.cross_encoder import CrossEncoder
 
 class PACECrossEncoder(CrossEncoder):
-
     def __init__(self, 
         model_name: str, 
         num_labels: int = None, 

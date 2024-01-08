@@ -2,6 +2,7 @@
 # for name in scidocs;do
 #     for model in checkpoints/pacerr_minilm/$name/*;do
 for name in scidocs;do
+    # for crossencoder in checkpoints/pacerr_minilm/$name/*;do
     for crossencoder in checkpoints/pacerr_minilm/$name/*;do
         echo ${crossencoder##*/}
         ~/trec_eval-9.0.7/trec_eval \

@@ -4,29 +4,9 @@ from typing import Union, Tuple, List, Iterable, Dict
 from torch.nn import functional as F
 from torch.nn import MarginRankingLoss
 from torch.nn import BCEWithLogitsLoss
-
-class CombinedLoss(nn.Module):
-
-    def __init__(self, 
-                 examples_per_group: int = 1, 
-                 margin: float = 0,
-                 reduction: str = 'mean'):
-        super().__init__()
-        self.examples_per_group = examples_per_group
-        self.loss_fct_0 = \
-                PairwiseHingeLoss(examples_per_group, margin, reduction)
-        self.loss_fct_1 = BCEWithLogitsLoss()
-
-    def forward(self, logits: Tensor, labels: Tensor):
-        loss_groupwise = self.loss_fct_0(logits, labels)
-        loss_pointwise = self.loss_fct_1(logits, labels)
-        loss = loss_groupwise + loss_pointwise
-        return loss_groupwise
+from torch.nn import CrossEntropyLoss
 
 class PairwiseHingeLoss(nn.Module):
-    """
-    Compute the loss between two query-document pairs with margin.
-    """
     def __init__(self, 
                  examples_per_group: int = 1, 
                  margin: float = 0, 
@@ -38,9 +18,63 @@ class PairwiseHingeLoss(nn.Module):
     def forward(self, logits: Tensor, labels: Tensor):
         # reshape the logits (B 1)
         logits = logits.view(-1, self.examples_per_group)
-        # left should large than right
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
-        targets = torch.ones(logits.size(0)).to(logits.device)
+        targets = torch.zeros(logits.size(0)).to(logits.device)
         return self.loss_fct(logits_positive, logits_negaitve, targets)
+
+# actually it can support multiple negatives
+class PairwiseLCELoss(nn.Module):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 reduction: str = 'mean'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = CrossEntropyLoss(reduction=reduction)
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
+        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
+        return self.loss_fct(logits, targets)
+
+class GroupwiseHingeLoss(nn.Module):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 margin: float = 0, 
+                 reduction: str = 'mean'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = MarginRankingLoss(margin=margin, reduction=reduction)
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
+
+        # left should large than right
+        logits_negaitve = logits[:, 0] 
+        logits_positive = logits[:, 1]
+        targets = torch.zeros(logits.size(0)).to(logits.device)
+        # return self.loss_fct(logits_positive, logits_negaitve, targets)
+
+class CombinedLoss(nn.Module):
+    def __init__(self, 
+                 add_hinge_loss: bool = False,
+                 examples_per_group: int = 1, 
+                 margin: float = 0,
+                 reduction: str = 'mean'):
+
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = [BCEWithLogitsLoss()]
+
+        if add_hinge_loss:
+            self.loss_fct += [
+                    PairwiseHingeLoss(examples_per_group, margin, reduction)
+            ]
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        loss = 0
+        for loss_fct in self.loss_fct:
+            loss += loss_fct(logits, labels)
+
+        return loss
 

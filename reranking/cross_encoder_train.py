@@ -1,4 +1,4 @@
-# from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder import CrossEncoder
 from cross_encoder import PACECrossEncoder
 from sentence_transformers import InputExample
 from operator import itemgetter
@@ -15,7 +15,7 @@ from pacerr.filters import filter_function_map
 from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-from pacerr.losses import PairwiseHingeLoss, CombinedLoss
+from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--bidirectional", action='store_true', default=False)
     parser.add_argument("--pointwise", action='store_true', default=False)
-    parser.add_argument("--groupwise", action='store_true', default=False)
+    parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
     args = parser.parse_args()
 
@@ -44,12 +44,12 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    if args.groupwise:
+    if args.pointwise:
+        reranker = CrossEncoder(args.model_name, num_labels=1,)
+    else:
         reranker = PACECrossEncoder(args.model_name, 
                                     num_labels=1, 
                                     document_centric=args.document_centric)
-    else:
-        reranker = CrossEncoder(args.model_name, num_labels=1,)
 
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
@@ -68,18 +68,17 @@ if __name__ == '__main__':
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
 
-        if args.groupwise:
+        if args.pointwise:
+            for query, score in pairs:
+                train_samples.append(InputExample(texts=[query, document], label=score))
+        else:
             queries, scores = map(list, (list(zip(*pairs))) )
             train_samples.append(GroupInputExample(
                 center=document, texts=queries, labels=scores
             ))
-        else:
-            for query, score in pairs:
-                train_samples.append(InputExample(texts=[query, document], label=score))
 
     #### Prepare dataloader
-    n = 1 
-    n = len(scores) if args.groupwise else n
+    n = 1 if args.pointwise else len(scores)
     train_dataloader = DataLoader(
             train_samples, 
             batch_size=args.batch_size // n,
@@ -90,18 +89,19 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.groupwise:
+    if args.objective == 'pairwise-hinge':
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, margin=0, reduction='mean'
         )
-        if args.pointwise:
-            logging.info("Using objective: CombinedLoss (PairwiseHingeLoss + BCELogitsLoss)")
-            loss_fct = CombinedLoss(
-                    examples_per_group=n, margin=0, reduction='mean')
+    elif args.objective == 'pairwise-lce':
+        logging.info("Using objective: LCELoss")
+        loss_fct = PairwiseLCELoss(
+                examples_per_group=n, reduction='mean'
+        )
     else:
+        loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
-        loss_fct = None
 
     #### Saving benchmark times
     start = datetime.datetime.now()
