@@ -1,5 +1,5 @@
 from sentence_transformers.cross_encoder import CrossEncoder
-from T5Reranker import MonoT5Reranker
+from monot5_reranker import MonoT5Reranker
 from operator import itemgetter
 
 import os
