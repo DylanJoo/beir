@@ -16,6 +16,7 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
+from pacerr.losses import CombinedLoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -99,9 +100,29 @@ if __name__ == '__main__':
         loss_fct = PairwiseLCELoss(
                 examples_per_group=n, reduction='mean'
         )
+    elif args.objective == 'combined-v1':
+        logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
+        loss_fct = CombinedLoss(
+                add_hinge_loss=True,
+                examples_per_group=n, 
+                reduction='mean'
+        )
+    elif args.objective == 'combined-v2':
+        logging.info("Using objective: BCELogitsLoss + LCELoss")
+        loss_fct = CombinedLoss(
+                add_lce_loss=True,
+                examples_per_group=n, 
+                reduction='mean'
+        )
     else:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
+
+                 # add_hinge_loss: bool = False,
+                 # add_lce_loss: bool = False,
+                 # examples_per_group: int = 1, 
+                 # margin: float = 0,
+                 # reduction: str = 'mean'):
 
     #### Saving benchmark times
     start = datetime.datetime.now()
