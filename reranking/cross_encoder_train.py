@@ -15,7 +15,7 @@ from pacerr.filters import filter_function_map
 from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-from pacerr.losses import PairwiseHingeLoss
+from pacerr.losses import PairwiseHingeLoss, CombinedLoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -44,9 +44,12 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    reranker = PACECrossEncoder(args.model_name, 
-                                num_labels=1, 
-                                document_centric=args.document_centric)
+    if args.groupwise:
+        reranker = PACECrossEncoder(args.model_name, 
+                                    num_labels=1, 
+                                    document_centric=args.document_centric)
+    else:
+        reranker = CrossEncoder(args.model_name, num_labels=1,)
 
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
@@ -65,17 +68,14 @@ if __name__ == '__main__':
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
 
-        if args.pointwise:
-            for query, score in pairs:
-                train_samples.append(InputExample(texts=[query, document], label=score))
-                # if args.bidirectional:
-                #     train_samples.append(PointInputExample(texts=[document, query], label=score))
-
         if args.groupwise:
             queries, scores = map(list, (list(zip(*pairs))) )
             train_samples.append(GroupInputExample(
                 center=document, texts=queries, labels=scores
             ))
+        else:
+            for query, score in pairs:
+                train_samples.append(InputExample(texts=[query, document], label=score))
 
     #### Prepare dataloader
     n = 1 
@@ -90,16 +90,18 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.pointwise:
-        loss_fct = None
-
     if args.groupwise:
+        logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
-                example_per_group=n, 
-                batch_size=args.batch_size,
-                margin=0, 
-                reduction='mean'
+                examples_per_group=n, margin=0, reduction='mean'
         )
+        if args.pointwise:
+            logging.info("Using objective: CombinedLoss (PairwiseHingeLoss + BCELogitsLoss)")
+            loss_fct = CombinedLoss(
+                    examples_per_group=n, margin=0, reduction='mean')
+    else:
+        logging.info("Using objective: BCELogitsLoss")
+        loss_fct = None
 
     #### Saving benchmark times
     start = datetime.datetime.now()
