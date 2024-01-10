@@ -38,6 +38,23 @@ class PairwiseLCELoss(nn.Module):
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 
+class PointwiseMSELoss(nn.Module):
+
+    def __init__(self, reduction='mean'):
+        super().__init__()
+        self.activation = nn.Sigmoid()
+        self.loss_fct = nn.MSELoss(reduction='mean')
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        logits = self.activation(logits)
+        return self.loss_fct(logits, labels)
+
+# class MarginMSELoss(nn.Module):
+#
+#     def forward(self, scores_pos, scores_neg, label_pos, label_neg):
+#     loss = torch.mean(torch.pow((scores_pos - scores_neg) - (label_pos - label_neg),2))
+#     return loss
+
 class CombinedLoss(nn.Module):
     def __init__(self, 
                  add_hinge_loss: bool = False,
