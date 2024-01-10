@@ -1,5 +1,6 @@
 from sentence_transformers.cross_encoder import CrossEncoder
 from cross_encoder import PACECrossEncoder
+from sentence_transformers.cross_encoder.evaluation import CEBinaryClassificationEvaluator
 from sentence_transformers import InputExample
 from operator import itemgetter
 
@@ -33,7 +34,6 @@ if __name__ == '__main__':
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--bidirectional", action='store_true', default=False)
-    parser.add_argument("--pointwise", action='store_true', default=False)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
     args = parser.parse_args()
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    if args.pointwise:
+    if 'pointwise' in args.objective:
         reranker = CrossEncoder(args.model_name, num_labels=1,)
     else:
         reranker = PACECrossEncoder(args.model_name, 
@@ -63,13 +63,14 @@ if __name__ == '__main__':
 
     #### Prepare examples
     train_samples = []
+    dev_samples = []
     for docid in pseudo_queries:
         document = corpus_texts[docid]
 
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
 
-        if args.pointwise:
+        if 'pointwise' in args.objective:
             for query, score in pairs:
                 train_samples.append(InputExample(texts=[query, document], label=score))
         else:
@@ -79,7 +80,7 @@ if __name__ == '__main__':
             ))
 
     #### Prepare dataloader
-    n = 1 if args.pointwise else len(scores)
+    n = 1 if 'pointwise' in args.objective else len(scores)
     train_dataloader = DataLoader(
             train_samples, 
             batch_size=args.batch_size // n,
@@ -95,44 +96,46 @@ if __name__ == '__main__':
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, margin=0, reduction='mean'
         )
-    elif args.objective == 'pairwise-lce':
+    if args.objective == 'pairwise-lce':
         logging.info("Using objective: LCELoss")
         loss_fct = PairwiseLCELoss(
                 examples_per_group=n, reduction='mean'
         )
-    elif args.objective == 'combined-v1':
+    if args.objective == 'combined-v1':
         logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
         loss_fct = CombinedLoss(
                 add_hinge_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    elif args.objective == 'combined-v2':
+    if args.objective == 'combined-v2':
         logging.info("Using objective: BCELogitsLoss + LCELoss")
         loss_fct = CombinedLoss(
                 add_lce_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    else:
+    if args.objective == 'pointwise-bce':
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
-
-                 # add_hinge_loss: bool = False,
-                 # add_lce_loss: bool = False,
-                 # examples_per_group: int = 1, 
-                 # margin: float = 0,
-                 # reduction: str = 'mean'):
 
     #### Saving benchmark times
     start = datetime.datetime.now()
 
+    #### Add evaluation
+    evaluator = None
+    # evaluator = CEBinaryClassificationEvaluator(
+    #         dev_samples, name='train-eval'
+    # )
+
     #### Start training
+    logging.info(f"The dataset has {len(train_dataloader)} batch")
     reranker.fit(
             train_dataloader=train_dataloader,
             loss_fct=loss_fct,
+            evaluator=evaluator,
             epochs=args.num_epochs,
-            warmup_steps=len(train_dataloader),
+            warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
             output_path=args.output_path # only save when evaluation
     )

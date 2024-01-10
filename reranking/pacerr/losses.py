@@ -21,7 +21,8 @@ class PairwiseHingeLoss(nn.Module):
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
         targets = torch.zeros(logits.size(0)).to(logits.device)
-        return self.loss_fct(logits_positive, logits_negaitve, targets)
+        loss = self.loss_fct(logits_positive, logits_negaitve, targets)
+        return loss
 
 # actually it can support multiple negatives
 class PairwiseLCELoss(nn.Module):
