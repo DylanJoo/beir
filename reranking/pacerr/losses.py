@@ -39,6 +39,41 @@ class PairwiseLCELoss(nn.Module):
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 
+class GroupwiseHingeLoss(PairwiseHingeLoss):
+    """
+    n = N-1 (num examples - 1)
+
+    - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
+    [NOTE 1] It can also be like warp, which mean select the n-th negative that have loss
+
+    - \sum_{i=0}^n PairwiseHingeLoss( [qi, p], [qi+1, p] )
+    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] ): this combines the above methods.
+    """
+    def forward(self, logits: Tensor, labels: Tensor):
+        loss = 0
+        logits = logits.view(-1, self.examples_per_group)
+        logits_positive = logits[:, 0]
+        targets = torch.zeros(logits.size(0)).to(logits.device)
+        for i in range(logits.size(-1)-1):
+            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
+        return loss / (logits.size(-1) - 1)
+
+class GroupwiseLCELoss(PairwiseLCELoss):
+    """
+    The original LCELoss is not pairwise. It's only a special case.
+    n = N-1 (num examples - 1) 
+
+    - Temperature is a hyperparameter.
+
+    - LCELoss( [[q0, p], [q1, p], ...[qn, p]] )
+    - \sum_{i=0}^n LCELoss( [[qi, p], [qi+1, p], ...[qn, p]] )
+    """
+    def forward(self, logits: Tensor, labels: Tensor):
+        loss = 0
+        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
+        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
+        return self.loss_fct(logits, targets)
+
 class CombinedLoss(nn.Module):
     def __init__(self, 
                  add_hinge_loss: bool = False,

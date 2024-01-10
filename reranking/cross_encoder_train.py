@@ -9,6 +9,7 @@ import json
 import datetime
 import logging
 import argparse 
+import wandb
 
 from torch.utils.data import DataLoader
 
@@ -18,6 +19,7 @@ from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 from pacerr.losses import CombinedLoss
+from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -33,7 +35,6 @@ if __name__ == '__main__':
     parser.add_argument("--filtering", type=str, default="{}")
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--bidirectional", action='store_true', default=False)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
     args = parser.parse_args()
@@ -51,6 +52,10 @@ if __name__ == '__main__':
         reranker = PACECrossEncoder(args.model_name, 
                                     num_labels=1, 
                                     document_centric=args.document_centric)
+
+    #### Add wandb 
+    wandb.init()
+    wandb.watch(reranker.model, log_freq=10)
 
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
@@ -91,31 +96,42 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.objective == 'pairwise-hinge':
+    if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, margin=0, reduction='mean'
         )
-    if args.objective == 'pairwise-lce':
+    if 'pairwise_lce' in args.objective:
         logging.info("Using objective: LCELoss")
         loss_fct = PairwiseLCELoss(
                 examples_per_group=n, reduction='mean'
         )
-    if args.objective == 'combined-v1':
+    if 'groupwise_hinge' in args.objective:
+        logging.info("Using objective: GroupwiseHingeLoss")
+        loss_fct = GroupwiseHingeLoss(
+                examples_per_group=n, reduction='mean'
+        )
+    if 'groupwise_lce' in args.objective:
+        logging.info("Using objective: GroupwiseLCELoss")
+        loss_fct = GroupwiseLCELoss(
+                examples_per_group=n, reduction='mean'
+        )
+
+    if 'combined_v1' in args.objective:
         logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
         loss_fct = CombinedLoss(
                 add_hinge_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    if args.objective == 'combined-v2':
+    if 'combined_v2' in args.objective:
         logging.info("Using objective: BCELogitsLoss + LCELoss")
         loss_fct = CombinedLoss(
                 add_lce_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    if args.objective == 'pointwise-bce':
+    if 'pointwise_bce' in args.objective:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
 
@@ -137,7 +153,8 @@ if __name__ == '__main__':
             epochs=args.num_epochs,
             warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
-            output_path=args.output_path # only save when evaluation
+            output_path=args.output_path, # only save when evaluation
+            wandb=wandb
     )
     reranker.save(args.output_path)
 
