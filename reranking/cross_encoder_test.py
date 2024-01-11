@@ -1,14 +1,8 @@
-import os
 import torch
 from typing import Dict, Type, Callable, List, Tuple
 from sentence_transformers.cross_encoder import CrossEncoder
-
-import torch.nn as nn
-from torch.utils.data import DataLoader
-from torch.optim import Optimizer
-from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers import SentenceTransformer
-from tqdm.autonotebook import tqdm, trange
+
 
 class PACECrossEncoder(CrossEncoder):
     def __init__(self, 
@@ -70,7 +64,7 @@ class PACECrossEncoder(CrossEncoder):
         use_amp: bool = False,
         callback: Callable[[float, int, int], None] = None,
         show_progress_bar: bool = True,
-        wandb = None,
+        wandb=None
     ):
         """
         Train the model with the given training objective
@@ -169,6 +163,7 @@ class PACECrossEncoder(CrossEncoder):
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
+
 
                 wandb.log({"loss": loss_value})
                 optimizer.zero_grad()

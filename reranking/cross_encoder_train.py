@@ -1,6 +1,7 @@
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
 from cross_encoder import PACECrossEncoder
+from sentence_transformers.cross_encoder.evaluation import CEBinaryClassificationEvaluator
 from sentence_transformers import InputExample
 from operator import itemgetter
 import random
@@ -10,6 +11,7 @@ import json
 import datetime
 import logging
 import argparse 
+import wandb
 
 from torch.utils.data import DataLoader
 
@@ -18,7 +20,8 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
-from pacerr.losses import CombinedLoss, PointwiseMSELoss
+from pacerr.losses import CombinedLoss
+from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -34,7 +37,6 @@ if __name__ == '__main__':
     parser.add_argument("--filtering", type=str, default="{}")
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--bidirectional", action='store_true', default=False)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
     args = parser.parse_args()
@@ -53,6 +55,10 @@ if __name__ == '__main__':
                                     num_labels=1, 
                                     document_centric=args.document_centric)
 
+    #### Add wandb 
+    wandb.init()
+    wandb.watch(reranker.model, log_freq=10)
+
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
     pseudo_queries = load_pseudo_queries(args.pseudo_queries)
@@ -64,6 +70,7 @@ if __name__ == '__main__':
 
     #### Prepare examples
     train_samples = []
+    dev_samples = []
     for docid in pseudo_queries:
         document = corpus_texts[docid]
 
@@ -91,57 +98,71 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.objective == 'pairwise-hinge':
+    if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, 
                 margin=1, 
                 reduction='mean'
         )
-    if args.objective == 'pairwise-lce':
+    if 'pairwise_lce' in args.objective:
         logging.info("Using objective: LCELoss")
         loss_fct = PairwiseLCELoss(
                 examples_per_group=n, reduction='mean'
         )
-    if args.objective == 'combined-v1':
+    if 'groupwise_hinge' in args.objective:
+        logging.info("Using objective: GroupwiseHingeLoss")
+        loss_fct = GroupwiseHingeLoss(
+                examples_per_group=n, reduction='mean'
+        )
+    if 'groupwise_lce' in args.objective:
+        logging.info("Using objective: GroupwiseLCELoss")
+        loss_fct = GroupwiseLCELoss(
+                examples_per_group=n, reduction='mean'
+        )
+
+    if 'combined_v1' in args.objective:
         logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
         loss_fct = CombinedLoss(
                 add_hinge_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    if args.objective == 'combined-v2':
+    if 'combined_v2' in args.objective:
         logging.info("Using objective: BCELogitsLoss + LCELoss")
         loss_fct = CombinedLoss(
                 add_lce_loss=True,
                 examples_per_group=n, 
                 reduction='mean'
         )
-    if args.objective == 'pointwise-bce':
-        loss_fct = None
-        logging.info("Using objective: BCELogitsLoss")
-
-    if args.objective == 'pointwise-mse':
+    if 'pointwise_mse' in args.objective:
         loss_fct = PointwiseMSELoss()
         logging.info("Using objective: MSELoss")
 
-    #### Evaluation
-    # dev_samples = random.sample(train_samples, 100)
-    # evaluator = CERerankingEvaluator(dev_samples, name='train-eval')
+    if 'pointwise_bce' in args.objective:
+        loss_fct = None # default in sentence bert
+        logging.info("Using objective: BCELogitsLoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()
+
+    #### Add evaluation
+    evaluator = None
+    # evaluator = CEBinaryClassificationEvaluator(
+    #         dev_samples, name='train-eval'
+    # )
 
     #### Start training
     logging.info(f"The dataset has {len(train_dataloader)} batch")
     reranker.fit(
             train_dataloader=train_dataloader,
             loss_fct=loss_fct,
-            evaluation_steps=args.num_epochs * len(train_dataloader) // 10,
+            evaluator=evaluator,
             epochs=args.num_epochs,
             warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
-            output_path=args.output_path # only save when evaluation
+            output_path=args.output_path, # only save when evaluation
+            wandb=wandb
     )
     reranker.save(args.output_path)
 
