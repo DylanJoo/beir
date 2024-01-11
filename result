@@ -1,48 +1,45 @@
-run.beir.baseline_bs4_top1-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.baseline_bs4_top1-20000_pairwise_lce.scidocs.txt
-0.1447
-run.beir.baseline_bs4_top1-20000_pointwise_bce.scidocs.txt
-0.0991
-
-run.beir.baseline_bs4_top2-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.baseline_bs4_top2-20000_pairwise_lce.scidocs.txt
-0.1427
-run.beir.baseline_bs4_top2-20000_pointwise_bce.scidocs.txt
-0.1081
-
-run.beir.baseline_bs4_top4-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.baseline_bs4_top4-20000_pairwise_lce.scidocs.txt
-0.1414
-run.beir.baseline_bs4_top4-20000_pointwise_bce.scidocs.txt
-0.1035
-
-run.beir.unlikelihood-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.unlikelihood-20000_pairwise_lce.scidocs.txt
-0.1446
-run.beir.unlikelihood-20000_pointwise_bce.scidocs.txt
-0.1273
-
-run.beir.unlikelihood_ibn_dd-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.unlikelihood_ibn_dd-20000_pairwise_lce.scidocs.txt
-0.1090
-run.beir.unlikelihood_ibn_dd-20000_pointwise_bce.scidocs.txt
-0.0731
-
-run.beir.unlikelihood_ibn_na-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.unlikelihood_ibn_na-20000_pairwise_lce.scidocs.txt
-0.1492
-run.beir.unlikelihood_ibn_na-20000_pointwise_bce.scidocs.txt
-0.1122
-
-run.beir.unlikelihood_ibn_qd-20000_pairwise_hinge.scidocs.txt
-0.1660
-run.beir.unlikelihood_ibn_qd-20000_pairwise_lce.scidocs.txt
-0.0805
-run.beir.unlikelihood_ibn_qd-20000_pointwise_bce.scidocs.txt
-0.0735
+baseline_bs4_top1-20000_pairwise_hinge.scidocs.txt 0.1660
+baseline_bs4_top1-20000_pairwise_lce.scidocs.txt 0.1447
+baseline_bs4_top1-20000_pointwise_bce.scidocs.txt 0.0991
+baseline_bs4_top2-20000_pairwise_hinge.scidocs.txt 0.1660
+baseline_bs4_top2-20000_pairwise_lce.scidocs.txt 0.1427
+baseline_bs4_top2-20000_pointwise_bce.scidocs.txt 0.1081
+baseline_bs4_top4-20000_pairwise_hinge.scidocs.txt 0.1660
+baseline_bs4_top4-20000_pairwise_lce.scidocs.txt 0.1414
+baseline_bs4_top4-20000_pointwise_bce.scidocs.txt 0.1035
+calibrate_margin_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_margin_ibn_dd-20000_pairwise_lce.scidocs.txt 0.1246
+calibrate_margin_ibn_dd-20000_pointwise_bce.scidocs.txt 0.1044
+calibrate_margin_ibn_dd-20000_pointwise_mse.scidocs.txt 0.1096
+calibrate_margin_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_margin_ibn_na-20000_pairwise_lce.scidocs.txt 0.1451
+calibrate_margin_ibn_na-20000_pointwise_bce.scidocs.txt 0.1215
+calibrate_margin_ibn_na-20000_pointwise_mse.scidocs.txt 0.1228
+calibrate_margin_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_margin_ibn_qd-20000_pairwise_lce.scidocs.txt 0.1171
+calibrate_margin_ibn_qd-20000_pointwise_bce.scidocs.txt 0.0979
+calibrate_margin_ibn_qd-20000_pointwise_mse.scidocs.txt 0.1115
+calibrate_rank_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_rank_ibn_dd-20000_pairwise_lce.scidocs.txt 0.1238
+calibrate_rank_ibn_dd-20000_pointwise_bce.scidocs.txt 0.0969
+calibrate_rank_ibn_dd-20000_pointwise_mse.scidocs.txt 0.1040
+calibrate_rank_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_rank_ibn_na-20000_pairwise_lce.scidocs.txt 0.1498
+calibrate_rank_ibn_na-20000_pointwise_bce.scidocs.txt 0.1217
+calibrate_rank_ibn_na-20000_pointwise_mse.scidocs.txt 0.1236
+calibrate_rank_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.1660
+calibrate_rank_ibn_qd-20000_pairwise_lce.scidocs.txt 0.1067
+calibrate_rank_ibn_qd-20000_pointwise_bce.scidocs.txt 0.1052
+calibrate_rank_ibn_qd-20000_pointwise_mse.scidocs.txt 0.1115
+unlikelihood-20000_pairwise_hinge.scidocs.txt 0.1660
+unlikelihood-20000_pairwise_lce.scidocs.txt 0.1446
+unlikelihood-20000_pointwise_bce.scidocs.txt 0.1273
+unlikelihood_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1660
+unlikelihood_ibn_dd-20000_pairwise_lce.scidocs.txt 0.1090
+unlikelihood_ibn_dd-20000_pointwise_bce.scidocs.txt 0.0731
+unlikelihood_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1660
+unlikelihood_ibn_na-20000_pairwise_lce.scidocs.txt 0.1492
+unlikelihood_ibn_na-20000_pointwise_bce.scidocs.txt 0.1122
+unlikelihood_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.1660
+unlikelihood_ibn_qd-20000_pairwise_lce.scidocs.txt 0.0805
+unlikelihood_ibn_qd-20000_pointwise_bce.scidocs.txt 0.0735

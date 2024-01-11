@@ -6,7 +6,7 @@ variant=$2
 
 for name in scidocs;do
     for model in checkpoints/pacerr_minilm$variant/$name/$setting*;do
-        echo "Data: " $variant " | Objectives: " ${model##*/}
+        echo "objective: " $variant " | setting: " ${model##*/}
         python reranking/cross_encoder_predict.py \
             --dataset datasets/$name \
             --input_run /work/jhju/beir-runs/run.beir.bm25-multifield.$name.txt \
