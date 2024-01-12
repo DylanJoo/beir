@@ -1,77 +1,6 @@
-data_dir=readqg-flan-t5-readqg-calibrate
+data_dir=readqg-flan-t5-readqg-baseline
 
-# pointwise
-for name in scidocs; do
-
-    for file in $data_dir/$name/*jsonl;do
-        setting=${file/.jsonl/}
-        setting=${setting##*/}
-        setting=${setting%.*}
-
-        python reranking/cross_encoder_train.py \
-            --dataset datasets/$name \
-            --pseudo_queries $file \
-            --output_path checkpoints/pacerr_minilm/$name/$setting \
-            --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-            --batch_size 32 \
-            --num_epochs 1 \
-            --learning_rate 7e-6 \
-            --filtering '{"name": "boundary", "num": 1}' \
-            --document_centric \
-            --objective pointwise-bce \
-            --device cuda
-    done
-done
-
-# # pairwise
-# variant=_hinge
-# for name in scidocs;do
-#
-#     for file in $data_dir/$name/*jsonl;do
-#         setting=${file/.jsonl/}
-#         setting=${setting##*/}
-#         setting=${setting%.*}
-#
-#         python reranking/cross_encoder_train.py \
-#             --dataset datasets/$name \
-#             --pseudo_queries $file \
-#             --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
-#             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-#             --batch_size 32 \
-#             --num_epochs 1 \
-#             --learning_rate 7e-6 \
-#             --filtering '{"name": "boundary", "num": 1}' \
-#             --document_centric \
-#             --objective pairwise-hinge \
-#             --device cuda
-#     done
-# done
-#
-# variant=_lce
-# for name in scidocs;do
-#
-#     for file in $data_dir/$name/*jsonl;do
-#         setting=${file/.jsonl/}
-#         setting=${setting##*/}
-#         setting=${setting%.*}
-#
-#         python reranking/cross_encoder_train.py \
-#             --dataset datasets/$name \
-#             --pseudo_queries $file \
-#             --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
-#             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-#             --batch_size 32 \
-#             --num_epochs 1 \
-#             --learning_rate 7e-6 \
-#             --filtering '{"name": "boundary", "num": 1}' \
-#             --document_centric \
-#             --objective pairwise-lce \
-#             --device cuda
-#     done
-# done
-
-# combined pointwise and pairwise
-variant=_combined_v1
+objective=_pairwise_hinge
 for name in scidocs;do
 
     for file in $data_dir/$name/*jsonl;do
@@ -82,37 +11,86 @@ for name in scidocs;do
         python reranking/cross_encoder_train.py \
             --dataset datasets/$name \
             --pseudo_queries $file \
-            --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
+            --output_path checkpoints/pacerr_minilm$objective/$name/$setting \
             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
             --batch_size 32 \
             --num_epochs 1 \
             --learning_rate 7e-6 \
             --filtering '{"name": "boundary", "num": 1}' \
             --document_centric \
-            --objective combined-v1 \
+            --objective $objective \
             --device cuda
     done
 done
 
-variant=_combined_v2
-for name in scidocs;do
+# objective=_lce
+# for name in scidocs;do
+#
+#     for file in $data_dir/$name/*jsonl;do
+#         setting=${file/.jsonl/}
+#         setting=${setting##*/}
+#         setting=${setting%.*}
+#
+#         python reranking/cross_encoder_train.py \
+#             --dataset datasets/$name \
+#             --pseudo_queries $file \
+#             --output_path checkpoints/pacerr_minilm$objective/$name/$setting \
+#             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
+#             --batch_size 32 \
+#             --num_epochs 1 \
+#             --learning_rate 7e-6 \
+#             --filtering '{"name": "boundary", "num": 1}' \
+#             --document_centric \
+#             --objective $objective \
+#             --device cuda
+#     done
+# done
 
-    for file in $data_dir/$name/*jsonl;do
-        setting=${file/.jsonl/}
-        setting=${setting##*/}
-        setting=${setting%.*}
+# groupwise
+# objective=_groupwise_hinge
+# for name in scidocs;do
+#
+#     for file in $data_dir/$name/*jsonl;do
+#         setting=${file/.jsonl/}
+#         setting=${setting##*/}
+#         setting=${setting%.*}
+#
+#         python reranking/cross_encoder_train.py \
+#             --dataset datasets/$name \
+#             --pseudo_queries $file \
+#             --output_path checkpoints/pacerr_minilm$objective/$name/$setting \
+#             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
+#             --batch_size 32 \
+#             --num_epochs 1 \
+#             --learning_rate 7e-6 \
+#             --filtering '{"name": "boundary", "num": 3}' \
+#             --document_centric \
+#             --objective $objective \
+#             --device cuda
+#     done
+# done
 
-        python reranking/cross_encoder_train.py \
-            --dataset datasets/$name \
-            --pseudo_queries $file \
-            --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
-            --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-            --batch_size 32 \
-            --num_epochs 1 \
-            --learning_rate 7e-6 \
-            --filtering '{"name": "boundary", "num": 1}' \
-            --document_centric \
-            --objective combined-v2 \
-            --device cuda
-    done
-done
+# groupwise
+# objective=_groupwise_lce
+# objective=_groupwise_hinge
+# for name in scidocs;do
+#
+#     for file in $data_dir/$name/*jsonl;do
+#         setting=${file/.jsonl/}
+#         setting=${setting##*/}
+#         setting=${setting%.*}
+#
+#         python reranking/cross_encoder_train.py \
+#             --dataset datasets/$name \
+#             --pseudo_queries $file \
+#             --output_path checkpoints/pacerr_minilm$objective/$name/$setting \
+#             --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
+#             --batch_size 32 \
+#             --num_epochs 1 \
+#             --learning_rate 7e-6 \
+#             --filtering '{"name": "none"}' \
+#             --document_centric \
+#             --objective $objective \
+#             --device cuda
+#     done
+# done

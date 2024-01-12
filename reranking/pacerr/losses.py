@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from torch.nn import MarginRankingLoss
 from torch.nn import BCEWithLogitsLoss
 from torch.nn import CrossEntropyLoss
+from torch.nn import MSELoss
 
 class PairwiseHingeLoss(nn.Module):
     def __init__(self, 
@@ -20,7 +21,7 @@ class PairwiseHingeLoss(nn.Module):
         logits = logits.view(-1, self.examples_per_group)
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
-        targets = torch.zeros(logits.size(0)).to(logits.device)
+        targets = torch.ones(logits.size(0)).to(logits.device) # 1 means left>right
         loss = self.loss_fct(logits_positive, logits_negaitve, targets)
         return loss
 
@@ -53,9 +54,10 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         logits_positive = logits[:, 0]
-        targets = torch.zeros(logits.size(0)).to(logits.device)
+        targets = torch.ones(logits.size(0)).to(logits.device)
         for i in range(logits.size(-1)-1):
-            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
+            loss_pair = self.loss_fct(logits[:, 0], logits[:, i+1], targets)
+            loss += loss_pair
         return loss / (logits.size(-1) - 1)
 
 class GroupwiseLCELoss(PairwiseLCELoss):
@@ -68,11 +70,27 @@ class GroupwiseLCELoss(PairwiseLCELoss):
     - LCELoss( [[q0, p], [q1, p], ...[qn, p]] )
     - \sum_{i=0}^n LCELoss( [[qi, p], [qi+1, p], ...[qn, p]] )
     """
+    def __init__(self, **kwargs):
+        super().__init__(*kwargs)
+        self.adopt_pairwise = False
+
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0
         logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
+
+class PointwiseMSELoss(nn.Module):
+
+    def __init__(self, reduction='mean'):
+        super().__init__()
+        self.activation = nn.Sigmoid()
+        self.loss_fct = nn.MSELoss(reduction='mean')
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        logits = self.activation(logits)
+        return self.loss_fct(logits, labels)
+
 
 class CombinedLoss(nn.Module):
     def __init__(self, 

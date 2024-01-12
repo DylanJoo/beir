@@ -4,3 +4,4 @@ run*/
 */**/*jsonl
 readqg-*/*/*jsonl
 checkpoints/
+wandb/

@@ -169,8 +169,10 @@ class PACECrossEncoder(CrossEncoder):
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
+                
+                if training_steps % 100 == 0:
+                    wandb.log({"loss": loss_value})
 
-                wandb.log({"loss": loss_value})
                 optimizer.zero_grad()
 
                 if not skip_scheduler:

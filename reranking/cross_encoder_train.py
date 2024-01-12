@@ -17,6 +17,7 @@ from pacerr.filters import filter_function_map
 from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
+# from pacerr.losses import PointwiseMSELoss
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 from pacerr.losses import CombinedLoss
 from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
@@ -54,7 +55,10 @@ if __name__ == '__main__':
                                     document_centric=args.document_centric)
 
     #### Add wandb 
-    wandb.init()
+    wandb.init(
+            config=reranker.config,
+            name=f"{args.pseudo_queries.split('/')[-1]} @ {args.objective}"
+    )
     wandb.watch(reranker.model, log_freq=10)
 
     #### Load data
@@ -134,6 +138,10 @@ if __name__ == '__main__':
     if 'pointwise_bce' in args.objective:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
+
+    if 'pointwise_mse' in args.objective:
+        loss_fct = PointwiseMSELoss()
+        logging.info("Using objective: MSELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()
