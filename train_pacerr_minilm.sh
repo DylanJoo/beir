@@ -6,11 +6,12 @@ for data in baseline calibrate unlikelihood;do
     for name in scidocs; do
 
         for file in $data_dir/$name/*jsonl; do
-            setting=${file/.json/}
+            setting=${file/.jsonl/}
             setting=${setting##*/}
             setting=${setting%.*}
             qrels=qrels/qrels.beir-v1.0.0-$name.test.txt
 
+            echo $setting
             python reranking/cross_encoder_train.py \
                 --dataset datasets/beir/$name \
                 --pseudo_queries $file \
