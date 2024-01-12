@@ -170,7 +170,9 @@ class PACECrossEncoder(CrossEncoder):
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
 
-                wandb.log({"loss": loss_value})
+                if training_steps % 100 == 0:
+                    wandb.log({"loss": loss_value})
+
                 optimizer.zero_grad()
 
                 if not skip_scheduler:
@@ -179,12 +181,25 @@ class PACECrossEncoder(CrossEncoder):
                 training_steps += 1
 
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(
+                    score = self._eval_during_training(
                         evaluator, output_path, save_best_model, epoch, training_steps, callback
                     )
 
+                    wandb.log({"eval_mean_mrr": score})
                     self.model.zero_grad()
                     self.model.train()
 
             if evaluator is not None:
-                self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+                score = self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
+                wandb.log({"eval_mean_mrr": score})
+
+    def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
+        if evaluator is not None:
+            score = evaluator(self, output_path=output_path, epoch=epoch, steps=steps)
+            if callback is not None:
+                callback(score, epoch, steps)
+            if score > self.best_score:
+                self.best_score = score
+                if save_best_model:
+                    self.save(output_path)
+        return score

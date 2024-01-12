@@ -17,10 +17,10 @@ from torch.utils.data import DataLoader
 
 from pacerr.filters import filter_function_map
 from pacerr.utils import load_corpus, load_results, load_pseudo_queries
+from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
-from pacerr.losses import CombinedLoss
 from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
 
 if __name__ == '__main__':
@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset", type=str, default=None)
     parser.add_argument("--output_path", type=str, default=None)
     parser.add_argument("--pseudo_queries", type=str, default=None)
+    parser.add_argument("--qrels", type=str, default=None)
     # 
     parser.add_argument("--model_name", type=str, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
     parser.add_argument("--batch_size", type=int, default=8)
@@ -39,6 +40,8 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
+    # evaluation
+    parser.add_argument("--do_eval", action='store_true', default=False)
     args = parser.parse_args()
 
     #### Just some code to print debug information to stdout
@@ -56,7 +59,10 @@ if __name__ == '__main__':
                                     document_centric=args.document_centric)
 
     #### Add wandb 
-    wandb.init()
+    wandb.init(
+            name=f"{args.pseudo_queries.split('/')[-1]} @ {args.objective}",
+            config=reranker.config
+    )
     wandb.watch(reranker.model, log_freq=10)
 
     #### Load data
@@ -121,20 +127,6 @@ if __name__ == '__main__':
                 examples_per_group=n, reduction='mean'
         )
 
-    if 'combined_v1' in args.objective:
-        logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
-        loss_fct = CombinedLoss(
-                add_hinge_loss=True,
-                examples_per_group=n, 
-                reduction='mean'
-        )
-    if 'combined_v2' in args.objective:
-        logging.info("Using objective: BCELogitsLoss + LCELoss")
-        loss_fct = CombinedLoss(
-                add_lce_loss=True,
-                examples_per_group=n, 
-                reduction='mean'
-        )
     if 'pointwise_mse' in args.objective:
         loss_fct = PointwiseMSELoss()
         logging.info("Using objective: MSELoss")
@@ -143,14 +135,35 @@ if __name__ == '__main__':
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
 
+    # combine pointwise
+    # if 'combined_v1' in args.objective:
+    #     logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
+    #     loss_fct = CombinedLoss(
+    #             add_hinge_loss=True,
+    #             examples_per_group=n, 
+    #             reduction='mean'
+    #     )
+    # if 'combined_v2' in args.objective:
+    #     logging.info("Using objective: BCELogitsLoss + LCELoss")
+    #     loss_fct = CombinedLoss(
+    #             add_lce_loss=True,
+    #             examples_per_group=n, 
+    #             reduction='mean'
+    #     )
+
     #### Saving benchmark times
     start = datetime.datetime.now()
 
     #### Add evaluation
-    evaluator = None
-    # evaluator = CEBinaryClassificationEvaluator(
-    #         dev_samples, name='train-eval'
-    # )
+    ##### Load Evaluation data with the format: [{'query': '', 'positive': [], 'negative': []}, ...]
+    if args.do_eval:
+        queries = load_queries(os.path.join(args.dataset, 'queries.jsonl'))
+        dev_samples = load_and_convert_qrels(
+                path=args.qrels,
+                queries=queries,
+                corpus_texts=corpus_texts
+        )
+        evaluator = CERerankingEvaluator(dev_samples, name='test')
 
     #### Start training
     logging.info(f"The dataset has {len(train_dataloader)} batch")
@@ -159,6 +172,7 @@ if __name__ == '__main__':
             loss_fct=loss_fct,
             evaluator=evaluator,
             epochs=args.num_epochs,
+            evaluation_steps=len(train_dataloader) // 5,  
             warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
             output_path=args.output_path, # only save when evaluation

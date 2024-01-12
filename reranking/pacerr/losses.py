@@ -21,9 +21,28 @@ class PairwiseHingeLoss(nn.Module):
         logits = logits.view(-1, self.examples_per_group)
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
-        targets = torch.zeros(logits.size(0)).to(logits.device)
+        targets = torch.ones(logits.size(0)).to(logits.device)
         loss = self.loss_fct(logits_positive, logits_negaitve, targets)
         return loss
+
+class GroupwiseHingeLoss(PairwiseHingeLoss):
+    """
+    n = N-1 (num examples - 1)
+
+    - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
+    [NOTE 1] It can also be like warp, which mean select the n-th negative that have loss
+
+    - \sum_{i=0}^n PairwiseHingeLoss( [qi, p], [qi+1, p] )
+    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] ): this combines the above methods.
+    """
+    def forward(self, logits: Tensor, labels: Tensor):
+        loss = 0
+        logits = logits.view(-1, self.examples_per_group)
+        logits_positive = logits[:, 0]
+        targets = torch.ones(logits.size(0)).to(logits.device)
+        for i in range(logits.size(-1)-1):
+            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
+        return loss / (logits.size(-1) - 1)
 
 # actually it can support multiple negatives
 class PairwiseLCELoss(nn.Module):
@@ -50,25 +69,6 @@ class PointwiseMSELoss(nn.Module):
     def forward(self, logits: Tensor, labels: Tensor):
         logits = self.activation(logits)
         return self.loss_fct(logits, labels)
-
-class GroupwiseHingeLoss(PairwiseHingeLoss):
-    """
-    n = N-1 (num examples - 1)
-
-    - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
-    [NOTE 1] It can also be like warp, which mean select the n-th negative that have loss
-
-    - \sum_{i=0}^n PairwiseHingeLoss( [qi, p], [qi+1, p] )
-    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] ): this combines the above methods.
-    """
-    def forward(self, logits: Tensor, labels: Tensor):
-        loss = 0
-        logits = logits.view(-1, self.examples_per_group)
-        logits_positive = logits[:, 0]
-        targets = torch.zeros(logits.size(0)).to(logits.device)
-        for i in range(logits.size(-1)-1):
-            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
-        return loss / (logits.size(-1) - 1)
 
 class GroupwiseLCELoss(PairwiseLCELoss):
     """
