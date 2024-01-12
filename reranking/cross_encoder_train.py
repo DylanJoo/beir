@@ -93,14 +93,14 @@ if __name__ == '__main__':
             ))
 
     #### Prepare dataloader
-    n = 1 if 'pointwise' in args.objective else len(scores)
     train_dataloader = DataLoader(
             train_samples, 
-            batch_size=args.batch_size // n,
+            batch_size=args.batch_size,
             collate_fn=reranker.smart_batching_collate, # in fact, no affect
             num_workers=0,
             shuffle=True, 
     )
+    n = 1 if 'pointwise' in args.objective else len(scores)
 
 
     #### Prepare losses
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, 
-                margin=1, 
+                margin=0, 
                 reduction='mean'
         )
     if 'pairwise_lce' in args.objective:
@@ -119,7 +119,9 @@ if __name__ == '__main__':
     if 'groupwise_hinge' in args.objective:
         logging.info("Using objective: GroupwiseHingeLoss")
         loss_fct = GroupwiseHingeLoss(
-                examples_per_group=n, reduction='mean'
+                examples_per_group=n, 
+                margin=0,
+                reduction='mean'
         )
     if 'groupwise_lce' in args.objective:
         logging.info("Using objective: GroupwiseLCELoss")

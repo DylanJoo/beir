@@ -15,9 +15,11 @@ class PairwiseHingeLoss(nn.Module):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = MarginRankingLoss(margin=margin, reduction=reduction)
+        self.activation = nn.Sigmoid()
 
     def forward(self, logits: Tensor, labels: Tensor):
         """ Try using labels as filter"""
+        logits = self.activation(logits)
         logits = logits.view(-1, self.examples_per_group)
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
@@ -30,10 +32,12 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
     n = N-1 (num examples - 1)
 
     - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
-    [NOTE 1] It can also be like warp, which mean select the n-th negative that have loss
+    [NOTE 1] It can also be like warp, 
+    which mean select the n-th negative that have loss
 
     - \sum_{i=0}^n PairwiseHingeLoss( [qi, p], [qi+1, p] )
-    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] ): this combines the above methods.
+    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] )
+    this combines the above methods.
     """
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0
