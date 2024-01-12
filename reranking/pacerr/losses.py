@@ -21,24 +21,10 @@ class PairwiseHingeLoss(nn.Module):
         logits = logits.view(-1, self.examples_per_group)
         logits_negaitve = logits[:, 0] # see `filter`
         logits_positive = logits[:, 1] # see `filter`
-        targets = torch.ones(logits.size(0)).to(logits.device) # 1 means left>right
+        targets = torch.ones(logits.size(0)).to(logits.device) 
+        # 1 means left>right
         loss = self.loss_fct(logits_positive, logits_negaitve, targets)
         return loss
-
-# actually it can support multiple negatives
-class PairwiseLCELoss(nn.Module):
-    def __init__(self, 
-                 examples_per_group: int = 1, 
-                 reduction: str = 'mean'):
-        super().__init__()
-        self.examples_per_group = examples_per_group
-        self.loss_fct = CrossEntropyLoss(reduction=reduction)
-
-    def forward(self, logits: Tensor, labels: Tensor):
-        """ Try using labels as filter"""
-        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
-        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        return self.loss_fct(logits, targets)
 
 class GroupwiseHingeLoss(PairwiseHingeLoss):
     """
@@ -56,9 +42,23 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
         logits_positive = logits[:, 0]
         targets = torch.ones(logits.size(0)).to(logits.device)
         for i in range(logits.size(-1)-1):
-            loss_pair = self.loss_fct(logits[:, 0], logits[:, i+1], targets)
-            loss += loss_pair
+            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
         return loss / (logits.size(-1) - 1)
+
+# actually it can support multiple negatives
+class PairwiseLCELoss(nn.Module):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 reduction: str = 'mean'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = CrossEntropyLoss(reduction=reduction)
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        """ Try using labels as filter"""
+        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
+        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
+        return self.loss_fct(logits, targets)
 
 class GroupwiseLCELoss(PairwiseLCELoss):
     """
@@ -85,12 +85,11 @@ class PointwiseMSELoss(nn.Module):
     def __init__(self, reduction='mean'):
         super().__init__()
         self.activation = nn.Sigmoid()
-        self.loss_fct = nn.MSELoss(reduction='mean')
+        self.loss_fct = MSELoss(reduction='mean')
 
     def forward(self, logits: Tensor, labels: Tensor):
         logits = self.activation(logits)
         return self.loss_fct(logits, labels)
-
 
 class CombinedLoss(nn.Module):
     def __init__(self, 

@@ -71,6 +71,29 @@ def load_results(path, topk=2000):
             'total amount', len(input_run))
     return input_run
 
+def load_and_convert_qrels(path, queries, corpus_texts):
+    q_positives = collections.defaultdict(list)
+    q_negatives = collections.defaultdict(list)
+
+    # load qrels
+    with open(path, 'r') as f:
+        for line in f:
+            qid, _, docid, rel = line.strip().split()
+            if int(rel) > 0:
+                q_positives[qid].append(corpus_texts[docid].strip())
+            else:
+                q_negatives[qid].append(corpus_texts[docid].strip())
+
+    # convert qrels to samples
+    sample_list = []
+    for qid in q_positives:
+        sample_list.append({
+            "query": queries[qid].strip(),
+            "positive": q_positives[qid], 
+            "negative": q_negatives[qid]
+        })
+    return sample_list
+
 def batch_iterator(iterable, size=1, return_index=False):
     l = len(iterable)
     for ndx in range(0, l, size):

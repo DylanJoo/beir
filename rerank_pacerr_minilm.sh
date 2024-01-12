@@ -1,4 +1,4 @@
-mkdir -p run.ce.top100
+mkdir -p run.pacerr.top100
 
 pseudo_q=$1
 objective=$2
