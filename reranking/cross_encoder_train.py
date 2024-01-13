@@ -29,7 +29,6 @@ if __name__ == '__main__':
     parser.add_argument("--output_path", type=str, default=None)
     parser.add_argument("--pseudo_queries", type=str, default=None)
     parser.add_argument("--qrels", type=str, default=None)
-    # 
     parser.add_argument("--model_name", type=str, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=1)
@@ -40,6 +39,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
+    parser.add_argument("--margin", type=int, default=0)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
     args = parser.parse_args()
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, 
-                margin=0, 
+                margin=args.margin, 
                 reduction='mean'
         )
     if 'pairwise_lce' in args.objective:
@@ -120,7 +120,7 @@ if __name__ == '__main__':
         logging.info("Using objective: GroupwiseHingeLoss")
         loss_fct = GroupwiseHingeLoss(
                 examples_per_group=n, 
-                margin=0,
+                margin=args.margin,
                 reduction='mean'
         )
     if 'groupwise_lce' in args.objective:

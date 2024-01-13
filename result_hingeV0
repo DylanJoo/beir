@@ -1,3 +1,4 @@
+# HingeLoss with margin = 0
 baseline_bs4_top1-20000_groupwise_hinge.scidocs.txt 0.0828
 baseline_bs4_top1-20000_pairwise_hinge.scidocs.txt 0.1068
 baseline_bs4_top2-20000_groupwise_hinge.scidocs.txt 0.0874
