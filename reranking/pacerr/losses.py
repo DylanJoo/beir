@@ -42,8 +42,8 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
     """
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0
+        logits = self.activation(logits)
         logits = logits.view(-1, self.examples_per_group)
-        logits_positive = logits[:, 0]
         targets = torch.ones(logits.size(0)).to(logits.device)
         for i in range(logits.size(-1)-1):
             loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)

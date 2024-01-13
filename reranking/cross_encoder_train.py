@@ -20,9 +20,11 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-# from pacerr.losses import PointwiseMSELoss
+from pacerr.losses import PointwiseMSELoss
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
+
+from pacerr.losses_test import GroupwiseHingeLossV1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -41,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
+    parser.add_argument("--margin", type=int, default=0)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
     args = parser.parse_args()
@@ -109,7 +112,7 @@ if __name__ == '__main__':
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, 
-                margin=0, 
+                margin=args.margin, 
                 reduction='mean'
         )
     if 'pairwise_lce' in args.objective:
@@ -121,7 +124,7 @@ if __name__ == '__main__':
         logging.info("Using objective: GroupwiseHingeLoss")
         loss_fct = GroupwiseHingeLoss(
                 examples_per_group=n, 
-                margin=0,
+                margin=args.margin,
                 reduction='mean'
         )
     if 'groupwise_lce' in args.objective:

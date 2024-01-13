@@ -6,7 +6,7 @@ for name in scidocs;do
     for model in checkpoints/pacerr_minilm$objective/$name/$pseudo_q*;do
         echo "Pseudo data: " $pseudo_q " | Objective: " $objective
         python reranking/cross_encoder_predict.py \
-            --dataset datasets/$name \
+            --dataset datasets/beir/$name \
             --input_run run.bm25/run.beir.bm25-multifield.$name.txt \
             --output_run run.pacerr.top100/run.beir.${model##*/}${objective}.$name.txt \
             --top_k 100 \
