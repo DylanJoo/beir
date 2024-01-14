@@ -43,6 +43,8 @@ if __name__ == '__main__':
     parser.add_argument("--margin", type=int, default=1)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
+    # saving 
+    parser.add_argument("--save_last", action='store_true', default=False)
     args = parser.parse_args()
 
     #### Just some code to print debug information to stdout
@@ -190,7 +192,8 @@ if __name__ == '__main__':
             output_path=args.output_path, # only save when evaluation
             wandb=wandb
     )
-    reranker.save(args.output_path)
+    if args.save_last:
+        reranker.save(args.output_path)
 
     #### Measure time to 
     end = datetime.datetime.now()
