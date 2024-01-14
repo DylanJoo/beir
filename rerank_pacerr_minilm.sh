@@ -4,7 +4,7 @@ pseudo_q=$1
 objective=$2
 for name in scidocs;do
     for model in checkpoints/pacerr_minilm$objective/$name/$pseudo_q*;do
-        echo "Pseudo data: " $pseudo_q " | Objective: " $objective
+        echo "Pseudo data: " ${model##*/} " | Objective: " $objective
         python reranking/cross_encoder_predict.py \
             --dataset datasets/beir/$name \
             --input_run run.bm25/run.beir.bm25-multifield.$name.txt \
