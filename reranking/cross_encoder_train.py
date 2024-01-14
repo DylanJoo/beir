@@ -21,10 +21,8 @@ from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PointwiseMSELoss
-from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
-from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
-
-from pacerr.losses_test import GroupwiseHingeLossV1
+from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss, GroupwiseHingeLossV1
+from pacerr.losses import CELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -42,7 +40,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--document_centric", action='store_true', default=False)
-    parser.add_argument("--margin", type=int, default=0)
+    parser.add_argument("--margin", type=int, default=1)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
     args = parser.parse_args()
@@ -107,17 +105,13 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
+    # Hinge
     if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
                 examples_per_group=n, 
                 margin=args.margin, 
                 reduction='mean'
-        )
-    if 'pairwise_lce' in args.objective:
-        logging.info("Using objective: LCELoss")
-        loss_fct = PairwiseLCELoss(
-                examples_per_group=n, reduction='mean'
         )
     if 'groupwise_hinge' in args.objective:
         logging.info("Using objective: GroupwiseHingeLoss")
@@ -126,10 +120,30 @@ if __name__ == '__main__':
                 margin=args.margin,
                 reduction='mean'
         )
-    if 'groupwise_lce' in args.objective:
-        logging.info("Using objective: GroupwiseLCELoss")
-        loss_fct = GroupwiseLCELoss(
-                examples_per_group=n, reduction='mean'
+    if 'groupwise_hinge_v1' in args.objective:
+        logging.info("Using objective: GroupwiseHingeLossV1")
+        loss_fct = GroupwiseHingeLossV1(
+                examples_per_group=n, 
+                margin=args.margin,
+                stride=1, 
+                dilation=1,
+                reduction='mean'
+        )
+
+    # CE
+    if 'pairwise_ce' in args.objective:
+        logging.info("Using objective: PairwiseCELoss")
+        assert n == 2, 'the filtering function can only output 2 only'
+        loss_fct = CELoss(
+                examples_per_group=2, # a positive and a negative
+                reduction='mean'
+        )
+    if 'groupwise_ce' in args.objective:
+        logging.info("Using objective: GroupwiseCELoss")
+        assert n > 2, 'the filtering function can only output larger than 2'
+        loss_fct = CELoss(
+                examples_per_group=n, # a positive and multiple negatives
+                reduction='mean'
         )
 
     if 'pointwise_mse' in args.objective:
@@ -139,10 +153,6 @@ if __name__ == '__main__':
     if 'pointwise_bce' in args.objective:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
-
-    if 'pointwise_mse' in args.objective:
-        loss_fct = PointwiseMSELoss()
-        logging.info("Using objective: MSELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()

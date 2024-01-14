@@ -14,8 +14,14 @@
 Primary losses
 1. BCELogitLoss
 
-2. PairwiseHingeLoss:
-Compute the loss between two query-document pairs with margin.
+2. HingeLoss
+Compute the loss between two query-document pairs with margin. 
+In our experiments, we found margin=1 is significantly better than margin=0.
+- PairwiseHingeLoss
+- GroupwiseHingeLoss
+
+- GroupwiseHingeLossV1 (test)
+
 
 3. LCELoss (Localized Contrastive Estimation)
 

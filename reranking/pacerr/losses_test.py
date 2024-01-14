@@ -2,16 +2,21 @@ import torch
 from typing import Union, Tuple, List, Iterable, Dict
 from torch import nn, Tensor
 from torch.nn import functional as F
+from torch.nn import MarginRankingLoss
+from torch.nn import CrossEntropyLoss
+
 """
+PCLCELoss:
+    - Passage-centric LCE (a positive query with multiple negative queries)
 Groupwuse Hinge Loss V1: 
-- Dilated hinge loss with stride 
+    - Dilated hinge loss with stride 
 """
 
 class GroupwiseHingeLossV1(nn.Module):
 
     def __init__(self, 
                  examples_per_group: int = 1, 
-                 margin: float = 0, 
+                 margin: float = 1, 
                  stride: int = 1,    # the size between selected positions
                  dilation: int = 1,  # the position of the paired negative 
                  reduction: str = 'mean'):
@@ -39,6 +44,6 @@ class GroupwiseHingeLossV1(nn.Module):
         for idx in self.sample_indices:
             logits_positive = logits[:, idx]
             logits_negative = logits[:, (idx+self.dilation)]
-            loss += self.loss_fct(logits_positive, logits_negative)
+            loss += self.loss_fct(logits_positive, logits_negative, targets)
         return loss / len(self.sample_indices)
 

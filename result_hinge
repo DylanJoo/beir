@@ -20,8 +20,6 @@ calibrate_rank_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1119
 calibrate_rank_ibn_qd-20000_groupwise_hinge.scidocs.txt 0.1333
 calibrate_rank_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.1591
 
-unlikelihood-20000_groupwise_hinge.scidocs.txt 0.1523
-unlikelihood-20000_pairwise_hinge.scidocs.txt 0.0483
 unlikelihood_ibn_dd-20000_groupwise_hinge.scidocs.txt 0.1348
 unlikelihood_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1024
 unlikelihood_ibn_na-20000_groupwise_hinge.scidocs.txt 0.1400

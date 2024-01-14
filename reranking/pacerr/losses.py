@@ -31,14 +31,8 @@ class PairwiseHingeLoss(nn.Module):
 class GroupwiseHingeLoss(PairwiseHingeLoss):
     """
     n = N-1 (num examples - 1)
-
     - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
     [NOTE 1] It can also be like warp, 
-    which mean select the n-th negative that have loss
-
-    - \sum_{i=0}^n PairwiseHingeLoss( [qi, p], [qi+1, p] )
-    - \sum_{i=0}^n \sum_{j=i+1}^n PairwiseHingeLoss( [qi, p], [qj, p] )
-    this combines the above methods.
     """
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0
@@ -49,8 +43,55 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
             loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
         return loss / (logits.size(-1) - 1)
 
-# actually it can support multiple negatives
-class PairwiseLCELoss(nn.Module):
+class GroupwiseHingeLossV1(nn.Module):
+    """
+    - \sum_{i=0}^n HingeLoss( [qi, p], [qi+1, p] ) # dilated 
+    - \sum_{i=0}^n \sum_{j=i+1}^n HingeLoss( [qi, p], [qj, p] )
+    """
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 margin: float = 1, 
+                 stride: int = 1,    # the size between selected positions
+                 dilation: int = 1,  # the position of the paired negative 
+                 reduction: str = 'mean'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = MarginRankingLoss(
+                margin=margin, 
+                reduction=reduction
+        )
+        self.activation = nn.Sigmoid()
+        self.stride = stride
+        self.dilation = dilation
+        self.sample_indices = list(
+                range(0, examples_per_group-dilation, stride)
+        )
+
+        for i, idx in enumerate(self.sample_indices):
+            print(f"The {i+1} pair: + {idx}; - {idx+dilation}")
+
+    def forward(self, logits, labels):
+        loss = 0
+        logits = self.activation(logits)
+        logits = logits.view(-1, self.examples_per_group)
+        targets = torch.ones(logits.size(0)).to(logits.device)
+        for idx in self.sample_indices:
+            logits_positive = logits[:, idx]
+            logits_negative = logits[:, (idx+self.dilation)]
+            loss += self.loss_fct(logits_positive, logits_negative, targets)
+        return loss / len(self.sample_indices)
+
+class CELoss(nn.Module):
+    """
+    The original LCELoss is not pairwise. It's only a special case.
+    - Temperature is a hyperparameter.
+
+    If n = 2, the pairwise CE Loss
+    - LCELoss( [[q0, p], [q1, p], ...[qn, p]] )
+
+    If n > 2, the groupwise CE Loss
+    - \sum_{i=0}^n CELoss( [[qi, p], [qi+1, p], ...[qn, p]] )
+    """
     def __init__(self, 
                  examples_per_group: int = 1, 
                  reduction: str = 'mean'):
@@ -59,27 +100,6 @@ class PairwiseLCELoss(nn.Module):
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
 
     def forward(self, logits: Tensor, labels: Tensor):
-        """ Try using labels as filter"""
-        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
-        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        return self.loss_fct(logits, targets)
-
-class GroupwiseLCELoss(PairwiseLCELoss):
-    """
-    The original LCELoss is not pairwise. It's only a special case.
-    n = N-1 (num examples - 1) 
-
-    - Temperature is a hyperparameter.
-
-    - LCELoss( [[q0, p], [q1, p], ...[qn, p]] )
-    - \sum_{i=0}^n LCELoss( [[qi, p], [qi+1, p], ...[qn, p]] )
-    """
-    def __init__(self, **kwargs):
-        super().__init__(*kwargs)
-        self.adopt_pairwise = False
-
-    def forward(self, logits: Tensor, labels: Tensor):
-        loss = 0
         logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
