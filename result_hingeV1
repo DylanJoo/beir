@@ -1,0 +1,30 @@
+# HingeLoss with margin = 1
+baseline_bs4_top1-20000_groupwise_hinge.scidocs.txt 0.1524
+baseline_bs4_top1-20000_pairwise_hinge.scidocs.txt 0.1153
+baseline_bs4_top2-20000_groupwise_hinge.scidocs.txt 0.1485
+baseline_bs4_top2-20000_pairwise_hinge.scidocs.txt 0.1048
+baseline_bs4_top4-20000_groupwise_hinge.scidocs.txt 0.1543
+baseline_bs4_top4-20000_pairwise_hinge.scidocs.txt 0.1100
+
+calibrate_margin_ibn_dd-20000_groupwise_hinge.scidocs.txt 0.1586
+calibrate_margin_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1111
+calibrate_margin_ibn_na-20000_groupwise_hinge.scidocs.txt 0.1518
+calibrate_margin_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1064
+calibrate_margin_ibn_qd-20000_groupwise_hinge.scidocs.txt 0.1320
+calibrate_margin_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.0961
+
+calibrate_rank_ibn_dd-20000_groupwise_hinge.scidocs.txt 0.1378
+calibrate_rank_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.0693
+calibrate_rank_ibn_na-20000_groupwise_hinge.scidocs.txt 0.1454
+calibrate_rank_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1119
+calibrate_rank_ibn_qd-20000_groupwise_hinge.scidocs.txt 0.1333
+calibrate_rank_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.1591
+
+unlikelihood-20000_groupwise_hinge.scidocs.txt 0.1523
+unlikelihood-20000_pairwise_hinge.scidocs.txt 0.0483
+unlikelihood_ibn_dd-20000_groupwise_hinge.scidocs.txt 0.1348
+unlikelihood_ibn_dd-20000_pairwise_hinge.scidocs.txt 0.1024
+unlikelihood_ibn_na-20000_groupwise_hinge.scidocs.txt 0.1400
+unlikelihood_ibn_na-20000_pairwise_hinge.scidocs.txt 0.1147
+unlikelihood_ibn_qd-20000_groupwise_hinge.scidocs.txt 0.1215
+unlikelihood_ibn_qd-20000_pairwise_hinge.scidocs.txt 0.0524
