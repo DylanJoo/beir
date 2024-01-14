@@ -22,7 +22,7 @@ from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import PointwiseMSELoss
 from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss, GroupwiseHingeLossV1
-from pacerr.losses import CELoss
+from pacerr.losses import CELoss, GroupwiseCELossV1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -143,6 +143,15 @@ if __name__ == '__main__':
         assert n > 2, 'the filtering function can only output larger than 2'
         loss_fct = CELoss(
                 examples_per_group=n, # a positive and multiple negatives
+                reduction='mean'
+        )
+    if 'groupwise_ce_v1' in args.objective:
+        logging.info("Using objective: GroupwiseCELossV1")
+        loss_fct = GroupwiseCELossV1(
+                examples_per_group=n, 
+                margin=args.margin,
+                stride=1, 
+                dilation=1,
                 reduction='mean'
         )
 
