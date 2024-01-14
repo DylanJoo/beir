@@ -1,6 +1,6 @@
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CERerankingEvaluator
-from cross_encoder import PACECrossEncoder
+from cross_encoder import StandardCrossEncoder, PACECrossEncoder
 from sentence_transformers.cross_encoder.evaluation import CEBinaryClassificationEvaluator
 from sentence_transformers import InputExample
 from operator import itemgetter
@@ -20,8 +20,11 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
+from pacerr.losses import PointwiseMSELoss
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
+
+from pacerr.losses_test import GroupwiseHingeLossV1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -52,7 +55,7 @@ if __name__ == '__main__':
 
     #### Reranking using Cross-Encoder model
     if 'pointwise' in args.objective:
-        reranker = CrossEncoder(args.model_name, num_labels=1,)
+        reranker = StandardCrossEncoder(args.model_name, num_labels=1,)
     else:
         reranker = PACECrossEncoder(args.model_name, 
                                     num_labels=1, 
@@ -137,21 +140,9 @@ if __name__ == '__main__':
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
 
-    # combine pointwise
-    # if 'combined_v1' in args.objective:
-    #     logging.info("Using objective: BCELogitsLoss + PairwiseHingeLoss")
-    #     loss_fct = CombinedLoss(
-    #             add_hinge_loss=True,
-    #             examples_per_group=n, 
-    #             reduction='mean'
-    #     )
-    # if 'combined_v2' in args.objective:
-    #     logging.info("Using objective: BCELogitsLoss + LCELoss")
-    #     loss_fct = CombinedLoss(
-    #             add_lce_loss=True,
-    #             examples_per_group=n, 
-    #             reduction='mean'
-    #     )
+    if 'pointwise_mse' in args.objective:
+        loss_fct = PointwiseMSELoss()
+        logging.info("Using objective: MSELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()
