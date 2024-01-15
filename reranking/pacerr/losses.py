@@ -1,3 +1,4 @@
+import math
 import torch
 from torch import nn, Tensor
 from typing import Union, Tuple, List, Iterable, Dict
@@ -94,13 +95,18 @@ class CELoss(nn.Module):
     """
     def __init__(self, 
                  examples_per_group: int = 1, 
-                 reduction: str = 'mean'):
+                 reduction: str = 'mean', 
+                 batchwise: bool = False):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
+        self.batchwise = batchwise
 
     def forward(self, logits: Tensor, labels: Tensor):
-        logits = logits.view(-1, self.examples_per_group) # reshape (B 1)
+        n = self.examples_per_group
+        if self.batchwise:
+            n = int(math.sqrt( logits.size(0) // n )) # batch_d #q x batch_q
+        logits = logits.view(-1, n) # reshape (B 1)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 

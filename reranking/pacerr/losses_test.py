@@ -26,9 +26,12 @@ class LocalizedIBCELoss(nn.Module):
             print(f"The {i+1} pair: + {idx}; - {idx+dilation}")
 
     def forward(self, logits, labels):
+        n = self.examples_per_group
+        if n is None:
+            n = int(math.sqrt(logits.size(0)))
         loss = 0
         logits = self.activation(logits)
-        logits = logits.view(-1, self.examples_per_group)
+        logits = logits.view(-1, n)
         targets = torch.ones(logits.size(0)).to(logits.device)
         for idx in self.sample_indices:
             logits_positive = logits[:, idx]
