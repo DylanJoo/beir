@@ -20,11 +20,12 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-from pacerr.losses import PointwiseMSELoss
 from pacerr.losses import PairwiseHingeLoss, PairwiseLCELoss
 from pacerr.losses import GroupwiseHingeLoss, GroupwiseLCELoss
+from pacerr.losses import GroupwiseHingeLossV1
+from pacerr.losses import MSELoss
 
-from pacerr.losses_test import GroupwiseHingeLossV1
+from pacerr.losses_test import GroupwiseMSELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -134,16 +135,25 @@ if __name__ == '__main__':
         )
 
     if 'pointwise_mse' in args.objective:
-        loss_fct = PointwiseMSELoss()
-        logging.info("Using objective: MSELoss")
+        loss_fct = MSELoss(reduction='mean')
+        logging.info("Using objective: PointwiseMSELoss")
 
     if 'pointwise_bce' in args.objective:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
 
-    if 'pointwise_mse' in args.objective:
-        loss_fct = PointwiseMSELoss()
-        logging.info("Using objective: MSELoss")
+    # rename it later
+    if 'groupwise_mse' in args.objective:
+        loss_fct = GroupwiseMSELoss(
+                examples_per_group=n, 
+                reduction='mean'
+        )
+        logging.info("Using objective: GroupwiseMSELoss")
+        logging.info("Using objective: DistillationMSELoss")
+
+    if 'distillation_mse' in args.objective:
+        loss_fct = MSELoss(reduction='mean')
+        logging.info("Using objective: DistillationMSELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()

@@ -10,7 +10,7 @@ from torch.nn import MSELoss
 class PairwiseHingeLoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
-                 margin: float = 0, 
+                 margin: float = 1, 
                  reduction: str = 'mean'):
         super().__init__()
         self.examples_per_group = examples_per_group
@@ -49,6 +49,42 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
             loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
         return loss / (logits.size(-1) - 1)
 
+class GroupwiseHingeLossV1(nn.Module):
+
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 margin: float = 1, 
+                 stride: int = 1,    # the size between selected positions
+                 dilation: int = 1,  # the position of the paired negative 
+                 reduction: str = 'mean'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = MarginRankingLoss(
+                margin=margin, 
+                reduction=reduction
+        )
+        self.activation = nn.Sigmoid()
+        self.stride = stride
+        self.dilation = dilation
+        self.sample_indices = list(
+                range(0, examples_per_group-dilation, stride)
+        )
+
+        for i, idx in enumerate(self.sample_indices):
+            print(f"The {i+1} pair: + {idx}; - {idx+dilation}")
+
+    def forward(self, logits, labels):
+        loss = 0
+        logits = self.activation(logits)
+        logits = logits.view(-1, self.examples_per_group)
+        targets = torch.ones(logits.size(0)).to(logits.device)
+        for idx in self.sample_indices:
+            logits_positive = logits[:, idx]
+            logits_negative = logits[:, (idx+self.dilation)]
+            loss += self.loss_fct(logits_positive, logits_negative)
+        return loss / len(self.sample_indices)
+
+
 # actually it can support multiple negatives
 class PairwiseLCELoss(nn.Module):
     def __init__(self, 
@@ -84,7 +120,7 @@ class GroupwiseLCELoss(PairwiseLCELoss):
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 
-class PointwiseMSELoss(nn.Module):
+class MSELoss(nn.Module):
 
     def __init__(self, reduction='mean'):
         super().__init__()
