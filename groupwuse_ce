@@ -1,0 +1,12 @@
+baseline_bs4_top1-20000_groupwise_ce.scidocs.txt 0.1288
+baseline_bs4_top2-20000_groupwise_ce.scidocs.txt 0.1286
+baseline_bs4_top4-20000_groupwise_ce.scidocs.txt 0.1454
+calibrate_margin_ibn_dd-20000_groupwise_ce.scidocs.txt 0.1161
+calibrate_margin_ibn_na-20000_groupwise_ce.scidocs.txt 0.1424
+calibrate_margin_ibn_qd-20000_groupwise_ce.scidocs.txt 0.1277
+calibrate_rank_ibn_dd-20000_groupwise_ce.scidocs.txt 0.1339
+calibrate_rank_ibn_na-20000_groupwise_ce.scidocs.txt 0.1399
+calibrate_rank_ibn_qd-20000_groupwise_ce.scidocs.txt 0.1292
+unlikelihood_ibn_dd-20000_groupwise_ce.scidocs.txt 0.1200
+unlikelihood_ibn_na-20000_groupwise_ce.scidocs.txt 0.1324
+unlikelihood_ibn_qd-20000_groupwise_ce.scidocs.txt 0.1175
