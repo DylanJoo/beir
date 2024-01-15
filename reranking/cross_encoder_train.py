@@ -158,12 +158,16 @@ if __name__ == '__main__':
         )
 
     if 'pointwise_mse' in args.objective:
-        loss_fct = PointwiseMSELoss()
-        logging.info("Using objective: MSELoss")
+        loss_fct = MSELoss(reduction='mean')
+        logging.info("Using objective: PointwiseMSELoss")
 
     if 'pointwise_bce' in args.objective:
         loss_fct = None # default in sentence bert
         logging.info("Using objective: BCELogitsLoss")
+
+    if 'distillation_mse' in args.objective:
+        loss_fct = MSELoss(reduction='mean')
+        logging.info("Using objective: DistillationMSELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()

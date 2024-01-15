@@ -10,7 +10,7 @@ from torch.nn import MSELoss
 class PairwiseHingeLoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
-                 margin: float = 0, 
+                 margin: float = 1, 
                  reduction: str = 'mean'):
         super().__init__()
         self.examples_per_group = examples_per_group
@@ -78,7 +78,7 @@ class GroupwiseHingeLossV1(nn.Module):
         for idx in self.sample_indices:
             logits_positive = logits[:, idx]
             logits_negative = logits[:, (idx+self.dilation)]
-            loss += self.loss_fct(logits_positive, logits_negative, targets)
+            loss += self.loss_fct(logits_positive, logits_negative)
         return loss / len(self.sample_indices)
 
 class CELoss(nn.Module):
@@ -137,15 +137,20 @@ class GroupwiseCELossV1(nn.Module):
             loss += self.loss_fct(logits_positive, logits_negative)
         return loss / len(self.sample_indices)
 
-class PointwiseMSELoss(nn.Module):
+class MSELoss(nn.Module):
 
-    def __init__(self, reduction='mean'):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 reduction='mean'):
         super().__init__()
+        self.examples_per_group = examples_per_group
         self.activation = nn.Sigmoid()
         self.loss_fct = MSELoss(reduction='mean')
 
     def forward(self, logits: Tensor, labels: Tensor):
         logits = self.activation(logits)
+        logits = logits.view(-1, self.examples_per_group)
+        labels = labels.view(-1, self.examples_per_group)
         return self.loss_fct(logits, labels)
 
 class CombinedLoss(nn.Module):

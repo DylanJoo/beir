@@ -183,6 +183,10 @@ class PACECrossEncoder(StandardCrossEncoder):
         self.document_centric = document_centric
 
     def smart_batching_collate(self, batch):
+        if self.document_centric is False:
+            batch = reverse_entity_center(batch)
+
+        # collect data
         texts = [[], []]
         labels = []
 
@@ -206,3 +210,20 @@ class PACECrossEncoder(StandardCrossEncoder):
 
         return tokenized, labels
 
+# [test] add smart batch collate function
+def reverse_entity_center(batch):
+    batch_return = []
+
+    centers = [ex.center.strip() for ex in batch]
+    batch_sides = [ex.texts.strip() for ex in batch] 
+    batch_labels = [ex.labels for ex in batch] 
+
+    for i, sides, labels in enumerate(zip(batch_sides, batch_labels)):
+        positive = centers[i]
+        negative = centers[:i] + centers[(i+1):]
+
+        for side, label in zip(sides[:n], labels[:n]):
+            batch_return.append(GroupInputExample(
+                center=side, texts=positive+negative
+            ))
+    return batch_return
