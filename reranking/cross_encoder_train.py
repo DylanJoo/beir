@@ -22,8 +22,8 @@ from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
 from pacerr.losses import MSELoss # PointwiseMSE and DistillationMSE
 from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss
-from pacerr.losses import CELoss, GroupwiseCE # PairwiseCE and GroupwiseCE
-from pacerr.losses import GroupwiseCELossV1, GroupwiseHingeLossV1
+from pacerr.losses import CELoss, GroupwiseCELoss # PairwiseCE and GroupwiseCE
+from pacerr.losses import GroupwiseHingeLossV1, GroupwiseCELossV1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -108,8 +108,7 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.query_centric is False:
-        # Hinge
+    # Hinge
     if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
@@ -149,6 +148,13 @@ if __name__ == '__main__':
                 examples_per_group=n, # a positive and multiple negatives
                 reduction='mean'
         )
+    if 'groupwise_ce_all' in args.objective:
+        logging.info("Using objective: GroupwiseCELoss")
+        assert n > 2, 'the filtering function can only output larger than 2'
+        loss_fct = CELoss(
+                examples_per_group=n, # a positive and multiple negatives
+                reduction='mean'
+        )
     if 'groupwise_ce_v1' in args.objective:
         logging.info("Using objective: GroupwiseCELossV1")
         loss_fct = GroupwiseCELossV1(
@@ -158,14 +164,8 @@ if __name__ == '__main__':
                 dilation=1,
                 reduction='mean'
         )
-    if 'groupwise_ce_v2' in args.objective:
-        logging.info("Using objective: GroupwiseCELoss")
-        assert n > 2, 'the filtering function can only output larger than 2'
-        loss_fct = CELoss(
-                examples_per_group=n, # a positive and multiple negatives
-                reduction='mean'
-        )
 
+    # MSE (binary) BCE Distillaion-MSE
     if 'pointwise_mse' in args.objective:
         loss_fct = MSELoss(reduction='mean')
         logging.info("Using objective: PointwiseMSELoss")

@@ -74,16 +74,7 @@ class GroupwiseHingeLossV1(nn.Module):
         return loss / len(self.sample_indices)
 
 class CELoss(nn.Module):
-    """
-    The original LCELoss is not pairwise. It's only a special case.
-    - Temperature is a hyperparameter.
-
-    If n = 2, the pairwise CE Loss
-    - LCELoss( [[q0, p], [q1, p], ...[qn, p]] )
-
-    If n > 2, the groupwise CE Loss
-    - \sum_{i=0}^n CELoss( [[qi, p], [qi+1, p], ...[qn, p]] )
-    """
+    """ [NOTE] Temperature is a hyperparameter. """
     def __init__(self, 
                  examples_per_group: int = 1, 
                  reduction: str = 'mean', 
@@ -104,27 +95,25 @@ class CELoss(nn.Module):
 class GroupwiseCELoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
-                 reduction: str = 'mean', 
-                 batchwise: bool = False):
+                 margin: float = 1, 
+                 stride: int = 1,    # the size between selected positions
+                 dilation: int = 1,  # the position of the paired negative 
+                 reduction: str = 'mean'):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
-        self.batchwise = batchwise
+        self.activation = nn.Sigmoid()
 
-    def forward(self, logits: Tensor, labels: Tensor):
-        n = self.examples_per_group
-        logits = logits.view(-1, n) # reshape (B 1)
-        logits_positive = logits[:, 0]
+    def forward(self, logits, labels):
+        loss = 0
+        logits = logits.view(-1, self.examples_per_group)
+        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         for i in range(logits.size(-1)-1):
-            logits_negative = logits[:, (i+1)]
-            loss += self.loss_fct(logits_positive, logits_negative)
-        return loss / logits.size(-1)
+            logits_ = logits[:, [0, i]]
+            loss += self.loss_fct(logits_, targets)
+        return loss / (logits.size(-1) - 1)
 
 class GroupwiseCELossV1(nn.Module):
-    """
-    - \sum_{i=0}^n HingeLoss( [qi, p], [qi+1, p] ) # dilated 
-    - \sum_{i=0}^n \sum_{j=i+1}^n HingeLoss( [qi, p], [qj, p] )
-    """
     def __init__(self, 
                  examples_per_group: int = 1, 
                  margin: float = 1, 
@@ -147,10 +136,10 @@ class GroupwiseCELossV1(nn.Module):
     def forward(self, logits, labels):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
+        targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         for idx in self.sample_indices:
-            logits_positive = logits[:, idx]
-            logits_negative = logits[:, (idx+self.dilation)]
-            loss += self.loss_fct(logits_positive, logits_negative)
+            logits_ = logits[:, [idx, (idx+self.dilation)] ]
+            loss += self.loss_fct(logits_, targets)
         return loss / len(self.sample_indices)
 
 class MSELoss(nn.Module):

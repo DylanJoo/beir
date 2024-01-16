@@ -185,7 +185,7 @@ class PACECrossEncoder(StandardCrossEncoder):
 
     def smart_batching_collate(self, batch):
         if self.query_centric:
-            batch = reverse_entity_center(batch)
+            batch = _qc_inbatch_negatives(batch)
 
         # collect data
         texts = [[], []]
@@ -212,7 +212,7 @@ class PACECrossEncoder(StandardCrossEncoder):
         return tokenized, labels
 
 # [test] add smart batch collate function
-def reverse_entity_center(batch):
+def _qc_inbatch_negatives(batch):
     batch_return = []
 
     centers = [ex.center.strip() for ex in batch]
