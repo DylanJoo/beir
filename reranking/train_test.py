@@ -26,7 +26,6 @@ from pacerr.losses import CELoss
 from pacerr.losses import GroupwiseHingeLossV1, GroupwiseCELossV1
 
 from model_test import PACECrossEncoder
-from pacerr.losses_test import LocalizedIBCELoss
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -162,7 +161,7 @@ if __name__ == '__main__':
                     reduction='mean'
             )
 
-        # pointwise
+        # pointwise # (it's better to call it regression)
         if 'pointwise_mse' in args.objective:
             loss_fct = MSELoss(reduction='mean')
             logging.info("Using objective: PointwiseMSELoss")

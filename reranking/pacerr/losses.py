@@ -30,11 +30,7 @@ class PairwiseHingeLoss(nn.Module):
         return loss
 
 class GroupwiseHingeLoss(PairwiseHingeLoss):
-    """
-    n = N-1 (num examples - 1)
-    - \sum_{i=1}^n PairwiseHingeLoss( [q0, p], [qi, p] )
-    [NOTE 1] It can also be like warp, 
-    """
+    """ [NOTE 1] It can also be like warp """
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0
         logits = self.activation(logits)
@@ -45,10 +41,6 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
         return loss / (logits.size(-1) - 1)
 
 class GroupwiseHingeLossV1(nn.Module):
-    """
-    - \sum_{i=0}^n HingeLoss( [qi, p], [qi+1, p] ) # dilated 
-    - \sum_{i=0}^n \sum_{j=i+1}^n HingeLoss( [qi, p], [qj, p] )
-    """
     def __init__(self, 
                  examples_per_group: int = 1, 
                  margin: float = 1, 
@@ -75,7 +67,6 @@ class GroupwiseHingeLossV1(nn.Module):
         loss = 0
         logits = self.activation(logits)
         logits = logits.view(-1, self.examples_per_group)
-        targets = torch.ones(logits.size(0)).to(logits.device)
         for idx in self.sample_indices:
             logits_positive = logits[:, idx]
             logits_negative = logits[:, (idx+self.dilation)]
@@ -109,6 +100,25 @@ class CELoss(nn.Module):
         logits = logits.view(-1, n) # reshape (B 1)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
+
+class GroupwiseCELoss(nn.Module):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 reduction: str = 'mean', 
+                 batchwise: bool = False):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = CrossEntropyLoss(reduction=reduction)
+        self.batchwise = batchwise
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        n = self.examples_per_group
+        logits = logits.view(-1, n) # reshape (B 1)
+        logits_positive = logits[:, 0]
+        for i in range(logits.size(-1)-1):
+            logits_negative = logits[:, (i+1)]
+            loss += self.loss_fct(logits_positive, logits_negative)
+        return loss / logits.size(-1)
 
 class GroupwiseCELossV1(nn.Module):
     """
@@ -158,31 +168,3 @@ class MSELoss(nn.Module):
         logits = logits.view(-1, self.examples_per_group)
         labels = labels.view(-1, self.examples_per_group)
         return self.loss_fct(logits, labels)
-
-class CombinedLoss(nn.Module):
-    def __init__(self, 
-                 add_hinge_loss: bool = False,
-                 add_lce_loss: bool = False,
-                 examples_per_group: int = 1, 
-                 margin: float = 0,
-                 reduction: str = 'mean'):
-
-        super().__init__()
-        self.examples_per_group = examples_per_group
-        self.loss_fct = [BCEWithLogitsLoss()]
-
-        if add_hinge_loss:
-            self.loss_fct += [
-                    PairwiseHingeLoss(examples_per_group, margin, reduction)
-            ]
-        if add_lce_loss:
-            self.loss_fct += [
-                    PairwiseLCELoss(examples_per_group, reduction)
-            ]
-
-    def forward(self, logits: Tensor, labels: Tensor):
-        loss = 0
-        for loss_fct in self.loss_fct:
-            loss += loss_fct(logits, labels)
-        return loss
-

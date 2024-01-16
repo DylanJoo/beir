@@ -6,26 +6,42 @@
 2. Boundary
     - params: num: int = 1
     - params: random-sample: int = 0
-3. 
+3. Top 
+    - params: num: int = 1
 
 
 ## Objectives
 
-Primary losses
-1. BCELogitLoss
+### Document-centric objectives
+1. Regression loss --
+we use the relevance scores ranged of [0, 1] as labels.
+    - BCELogitLoss
+    - Binary MSE
+    - Distillation MSE
 
-2. HingeLoss
-Compute the loss between two query-document pairs with margin. 
-In our experiments, we found margin=1 is significantly better than margin=0.
-- PairwiseHingeLoss
-- GroupwiseHingeLoss
+2. Ranking pairwise loss --
+we use the relevance scores 0 and 1 as a negative and a positive.
+    - Hinge
+    - CrossEntropy (CE)
 
-- GroupwiseHingeLossV1 (test)
+3. Ranking pairwise loss with negative queries --
+in addition to the boundary 0 and 1, we pair the positive one and each of the other negatives with relevance scores between 0 and 1 (as soft negative). For example, [ {d, q+}-{d, q--}, {d, q+}-{d, q-}, ...]
+    - Hinge 
+    - CE
 
+4. Ranking pairwise loss (V1) within rolling relevance --
+For example, [ {d, qi}-{d, qi+1}, {d, qi+1}-{d, qi+2}, ...]
+    - Hinge 
+    - CE
 
-3. LCELoss (Localized Contrastive Estimation)
+5. Ranking pairwise loss (V2) with query  
+For example, [ {d, qi, qi+1, ...qn} ]
+    - Hinge 
+    - CE
 
-Composite loss
-1. CompositeV1Loss: BCELogitLoss + PairwiseHingeLoss
-2. CompositeV2Loss: BCELogitLoss + LCELoss
-2. CompositeV3Loss: BCELogitLoss + PairwiseHingeLoss + LCELoss
+### Query-centric objectives
+1. Ranking groupwise In-batch negatives
+    - CE
+
+### Composite loss
+1. TBD

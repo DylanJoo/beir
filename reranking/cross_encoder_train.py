@@ -20,9 +20,10 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-from pacerr.losses import PointwiseMSELoss
-from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss, GroupwiseHingeLossV1
-from pacerr.losses import CELoss, GroupwiseCELossV1
+from pacerr.losses import MSELoss # PointwiseMSE and DistillationMSE
+from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss
+from pacerr.losses import CELoss, GroupwiseCE # PairwiseCE and GroupwiseCE
+from pacerr.losses import GroupwiseCELossV1, GroupwiseHingeLossV1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
-    parser.add_argument("--document_centric", action='store_true', default=False)
+    parser.add_argument("--query_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     else:
         reranker = PACECrossEncoder(args.model_name, 
                                     num_labels=1, 
-                                    document_centric=args.document_centric)
+                                    query_centric=args.query_centric)
 
     #### Add wandb 
     wandb.init(
@@ -107,7 +108,8 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    # Hinge
+    if args.query_centric is False:
+        # Hinge
     if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
         loss_fct = PairwiseHingeLoss(
@@ -143,7 +145,7 @@ if __name__ == '__main__':
     if 'groupwise_ce' in args.objective:
         logging.info("Using objective: GroupwiseCELoss")
         assert n > 2, 'the filtering function can only output larger than 2'
-        loss_fct = CELoss(
+        loss_fct = GroupwiseCELoss(
                 examples_per_group=n, # a positive and multiple negatives
                 reduction='mean'
         )
@@ -154,6 +156,13 @@ if __name__ == '__main__':
                 margin=args.margin,
                 stride=1, 
                 dilation=1,
+                reduction='mean'
+        )
+    if 'groupwise_ce_v2' in args.objective:
+        logging.info("Using objective: GroupwiseCELoss")
+        assert n > 2, 'the filtering function can only output larger than 2'
+        loss_fct = CELoss(
+                examples_per_group=n, # a positive and multiple negatives
                 reduction='mean'
         )
 

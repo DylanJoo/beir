@@ -10,6 +10,7 @@ from sentence_transformers.evaluation import SentenceEvaluator
 from sentence_transformers import SentenceTransformer
 from tqdm.autonotebook import tqdm, trange
 
+from pacerr.inputs import GroupInputExample
 class StandardCrossEncoder(CrossEncoder):
 
     def fit(
@@ -174,29 +175,34 @@ class PACECrossEncoder(StandardCrossEncoder):
         tokenizer_args: Dict = {},
         automodel_args: Dict = {}, 
         default_activation_function = None, 
-        document_centric: bool = True
+        query_centric: bool = True
     ):
         super().__init__(model_name, num_labels, max_length, 
                 device, tokenizer_args, automodel_args, 
                 default_activation_function
         )
-        self.document_centric = document_centric
+        self.query_centric = query_centric
 
     def smart_batching_collate(self, batch):
+        # default is the document-wise batch
+        if self.query_centric:
+            batch = reverse_entity_center(batch)
+
+        # collect data
         texts = [[], []]
         labels = []
 
         for example in batch:
             center = example.center
             for i, text in enumerate(example.texts):
-                if self.document_centric:
+                if self.query_centric:
+                    texts[0].append(center.strip()) 
+                    texts[1].append(text.strip()) 
+                    labels.append(example.labels[i])
+                else:
                     texts[0].append(text.strip()) # different queries
                     texts[1].append(center.strip())
                     labels.append(example.labels[i])
-                else: # the standard query-centric training
-                    texts[0].append(center.strip()) 
-                    texts[1].append(text.strip()) 
-                    labels.append(example.label[i])
 
         tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
