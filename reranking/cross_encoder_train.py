@@ -97,10 +97,10 @@ if __name__ == '__main__':
             ))
 
     #### Prepare dataloader
+            # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
     train_dataloader = DataLoader(
             train_samples, 
             batch_size=args.batch_size,
-            collate_fn=reranker.smart_batching_collate, # in fact, no affect
             num_workers=0,
             shuffle=True, 
     )
