@@ -107,6 +107,7 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
+
     # Hinge
     if 'pairwise_hinge' in args.objective:
         logging.info("Using objective: PairwiseHingeLoss")
@@ -144,6 +145,13 @@ if __name__ == '__main__':
         logging.info("Using objective: GroupwiseCELoss")
         assert n > 2, 'the filtering function can only output larger than 2'
         loss_fct = CELoss(
+                examples_per_group=n, # a positive and multiple negatives
+                reduction='mean'
+        )
+    if 'groupwise_ce_all' in args.objective:
+        logging.info("Using objective: GroupwiseCELoss")
+        assert n > 2, 'the filtering function can only output larger than 2'
+        loss_fct = GroupwiseCELoss(
                 examples_per_group=n, # a positive and multiple negatives
                 reduction='mean'
         )
