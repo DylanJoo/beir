@@ -36,8 +36,8 @@ class GroupwiseHingeLoss(PairwiseHingeLoss):
         logits = self.activation(logits)
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.ones(logits.size(0)).to(logits.device)
-        for i in range(logits.size(-1)-1):
-            loss += self.loss_fct(logits[:, 0], logits[:, i+1], targets)
+        for idx in range(logits.size(-1)-1):
+            loss += self.loss_fct(logits[:, 0], logits[:, idx+1], targets)
         return loss / (logits.size(-1) - 1)
 
 class GroupwiseHingeLossV1(nn.Module):
@@ -67,10 +67,10 @@ class GroupwiseHingeLossV1(nn.Module):
         loss = 0
         logits = self.activation(logits)
         logits = logits.view(-1, self.examples_per_group)
+        targets = torch.ones(logits.size(0)).to(logits.device) 
         for idx in self.sample_indices:
-            logits_positive = logits[:, idx]
             logits_negative = logits[:, (idx+self.dilation)]
-            loss += self.loss_fct(logits_positive, logits_negative)
+            loss += self.loss_fct(logits[:, idx], logits_negative, targets)
         return loss / len(self.sample_indices)
 
 class CELoss(nn.Module):
@@ -108,9 +108,8 @@ class GroupwiseCELoss(nn.Module):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        for i in range(logits.size(-1)-1):
-            logits_ = logits[:, [0, i]]
-            loss += self.loss_fct(logits_, targets)
+        for idx in range(logits.size(-1)-1):
+            loss += self.loss_fct(logits[:, [0, idx+1]], targets)
         return loss / (logits.size(-1) - 1)
 
 class GroupwiseCELossV1(nn.Module):

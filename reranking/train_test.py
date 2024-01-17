@@ -110,7 +110,17 @@ if __name__ == '__main__':
 
 
     #### Prepare losses
-    if args.query_centric is False:
+    if args.query_centric:
+        # CE
+        if 'qc_groupwise_ce' in args.objective:
+            loss_fct = CELoss(
+                    examples_per_group=n, 
+                    reduction='mean',
+                    batchwise=args.query_centric,
+            )
+            logging.info("Using objective: Query-centric GroupwiseCELoss")
+
+    else:
         # Hinge
         if 'pairwise_hinge' in args.objective:
             logging.info("Using objective: PairwiseHingeLoss")
@@ -173,15 +183,6 @@ if __name__ == '__main__':
         if 'distillation_mse' in args.objective:
             loss_fct = MSELoss(reduction='mean')
             logging.info("Using objective: DistillationMSELoss")
-
-    # query - centric
-    if 'qc_groupwise_ce' in args.objective:
-        loss_fct = CELoss(
-                examples_per_group=n, 
-                reduction='mean',
-                batchwise=True,
-        )
-        logging.info("Using objective: Query-centric GroupwiseCELoss")
 
     #### Saving benchmark times
     start = datetime.datetime.now()
