@@ -1,5 +1,6 @@
 import os
 import torch
+import inspect
 from typing import Dict, Type, Callable, List, Tuple
 from sentence_transformers.cross_encoder import CrossEncoder
 
@@ -11,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 from tqdm.autonotebook import tqdm, trange
 
 from pacerr.inputs import GroupInputExample
+
 class StandardCrossEncoder(CrossEncoder):
 
     def fit(
@@ -60,7 +62,12 @@ class StandardCrossEncoder(CrossEncoder):
                 `score`, `epoch`, `steps`
         :param show_progress_bar: If True, output a tqdm progress bar
         """
-        train_dataloader.collate_fn = self.smart_batching_collate
+        # [NOTE] remove the pre-collate function
+        if len(inspect.signature(self.smart_batching_collate).parameters.keys()) > 1:
+            collate_fn = lambda batch: self.smart_batching_collate(batch, True, False)
+            train_dataloader.collate_fn = collate_fn
+        else:
+            train_dataloader.collate_fn = self.smart_batching_collate
 
         if use_amp:
             from torch.cuda.amp import autocast
@@ -103,6 +110,10 @@ class StandardCrossEncoder(CrossEncoder):
             self.model.zero_grad()
             self.model.train()
 
+            # [NOTE] Since we remove the original batch
+            # for features, labels in tqdm(
+            #     train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
+            # ):
             for features, labels in tqdm(
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
@@ -183,19 +194,19 @@ class PACECrossEncoder(StandardCrossEncoder):
         )
         self.query_centric = query_centric
 
-    def smart_batching_collate(self, batch):
+    def smart_batching_collate(self, batch, document_centric=False, query_centric=False):
         # collect data
         texts = [[], []]
         labels = []
 
-        if self.query_centric:
+        if query_centric:
             batch_qc = _qc_inbatch_negatives(batch)
             (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch_qc)
             texts[0] += sentlist_left
             texts[1] += sentlist_right
             labels += scores
 
-        if self.document_centric:
+        if document_centric:
             (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch)
             texts[0] += sentlist_left
             texts[1] += sentlist_right
@@ -207,7 +218,7 @@ class PACECrossEncoder(StandardCrossEncoder):
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)
 
-        return tokenized, labels
+        return tokenized, labels, batch
 
     def collate_from_inputs(self, batch, query_is_center=False):
         """ 
