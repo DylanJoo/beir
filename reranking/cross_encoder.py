@@ -11,7 +11,46 @@ from sentence_transformers import SentenceTransformer
 from tqdm.autonotebook import tqdm, trange
 
 from pacerr.inputs import GroupInputExample
+
 class StandardCrossEncoder(CrossEncoder):
+
+    def __init__(
+        self, 
+        model_name: str, 
+        num_labels: int = None, 
+        max_length: int = None, 
+        device: str = None, 
+        tokenizer_args: Dict = {},
+        automodel_args: Dict = {}, 
+        default_activation_function = None, 
+        classifier_dropout: float = None,
+        query_centric: bool = False,
+        document_centric: bool = False,
+    ):
+        super().__init__(
+                model_name, num_labels, max_length, 
+                device, tokenizer_args, automodel_args, 
+                default_activation_function
+        )
+        self.query_centric = query_centric
+        self.document_centric = document_centric
+
+    def compute_loss(
+        self, 
+        features,
+        labels,
+        loss_fct=nn.BCEWithLogitsLoss(),
+        activation_fct=nn.Identity(),
+    ):
+        if features is not None:
+            model_predictions = self.model(**features, return_dict=True)
+            logits = activation_fct(model_predictions.logits)
+            if self.config.num_labels == 1:
+                logits = logits.view(-1)
+            loss_value = loss_fct(logits, labels)
+            return loss_value
+        else:
+            return 0
 
     def fit(
         self,
@@ -19,6 +58,7 @@ class StandardCrossEncoder(CrossEncoder):
         evaluator: SentenceEvaluator = None,
         epochs: int = 1,
         loss_fct=None,
+        loss_fct_qc=None,
         activation_fct=nn.Identity(),
         scheduler: str = "WarmupLinear",
         warmup_steps: int = 10000,
@@ -44,6 +84,7 @@ class StandardCrossEncoder(CrossEncoder):
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
         :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+        :param loss_fct_qc: the loss function for traininig query-centric (standard) examples.
         :param activation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         :param warmup_steps: Behavior depends on the scheduler. For WarmupLinear (default), the learning rate is increased from o up to the maximal learning rate. After these many training steps, the learning rate is decreased linearly back to zero.
@@ -103,16 +144,19 @@ class StandardCrossEncoder(CrossEncoder):
             self.model.zero_grad()
             self.model.train()
 
-            for features, labels in tqdm(
+            # [NOTE] add bidirectional training
+            # for features, labels in tqdm(
+            #     train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
+            # ):
+            for features_qc, labels_qc, features_dc, labels_dc in tqdm(
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
                     with autocast():
-                        model_predictions = self.model(**features, return_dict=True)
-                        logits = activation_fct(model_predictions.logits)
-                        if self.config.num_labels == 1:
-                            logits = logits.view(-1)
-                        loss_value = loss_fct(logits, labels)
+                        # [NOTE] add bidirectional training
+                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct)
+                        loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_qc)
+                        loss_value = loss_value_qc + loss_value_dc
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
@@ -123,17 +167,21 @@ class StandardCrossEncoder(CrossEncoder):
 
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
-                    model_predictions = self.model(**features, return_dict=True)
-                    logits = activation_fct(model_predictions.logits)
-                    if self.config.num_labels == 1:
-                        logits = logits.view(-1)
-                    loss_value = loss_fct(logits, labels)
+                    # [NOTE] add bidirectional training
+                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct)
+                    loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_qc)
+                    loss_value = loss_value_qc + loss_value_dc
+
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
                 
                 if training_steps % 100 == 0:
                     wandb.log({"loss": loss_value})
+                    if loss_value_qc:
+                        wandb.log({"loss_qc": loss_value_qc})
+                    if loss_value_dc:
+                        wandb.log({"loss_dc": loss_value_dc})
 
                 optimizer.zero_grad()
 
@@ -167,48 +215,68 @@ class StandardCrossEncoder(CrossEncoder):
         return score
 
 class PACECrossEncoder(StandardCrossEncoder):
-    def __init__(self, 
-        model_name: str, 
-        num_labels: int = None, 
-        max_length: int = None, 
-        device: str = None, 
-        tokenizer_args: Dict = {},
-        automodel_args: Dict = {}, 
-        default_activation_function = None, 
-        query_centric: bool = True
-    ):
-        super().__init__(model_name, num_labels, max_length, 
-                device, tokenizer_args, automodel_args, 
-                default_activation_function
-        )
-        self.query_centric = query_centric
 
     def smart_batching_collate(self, batch):
-        # default is the document-wise batch
+
+        # document centric
+        tokenized_dc = labels_dc = None
+        labels_dc = []
+        if self.document_centric:
+            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch)
+            texts_0 = sentlist_left
+            texts_1 = sentlist_right
+            tokenized_dc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+            tokenized_dc.to(self._target_device)
+            labels_dc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
+
+        # query centric
+        tokenized_qc = labels_qc = None
         if self.query_centric:
-            batch = reverse_entity_center(batch)
+            batch = _reverse_batch_negative(batch)
+            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch, True)
+            texts_0 = sentlist_left
+            texts_1 = sentlist_right
+            tokenized_qc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
+            tokenized_qc.to(self._target_device)
+            labels_qc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
 
-        # collect data
-        texts = [[], []]
+        return tokenized_dc, labels_dc, tokenized_qc, labels_qc
+
+    def collate_from_inputs(self, batch, query_is_center=False):
+        sent_left = []
+        sent_right = []
         labels = []
-
         for example in batch:
-            center = example.center
+            center = example.center.strip()
             for i, text in enumerate(example.texts):
-                if self.query_centric:
-                    texts[0].append(center.strip()) 
-                    texts[1].append(text.strip()) 
+                if query_is_center:
+                    sent_left.append(center) 
+                    sent_right.append(text.strip()) 
                     labels.append(example.labels[i])
                 else:
-                    texts[0].append(text.strip()) # different queries
-                    texts[1].append(center.strip())
+                    sent_left.append(text.strip()) 
+                    sent_right.append(center)
                     labels.append(example.labels[i])
 
-        tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
-        labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
+        return (sent_left, sent_right), labels
 
-        for name in tokenized:
-            tokenized[name] = tokenized[name].to(self._target_device)
 
-        return tokenized, labels
+# [test] add smart batch collate function
+def _reverse_batch_negative(batch):
+    batch_return = []
 
+    centers = [ex.center.strip() for ex in batch]
+    batch_sides = [ex.texts for ex in batch] 
+    batch_labels = [ex.labels for ex in batch] 
+
+    for i, (sides, labels) in enumerate(zip(batch_sides, batch_labels)):
+        positive = [centers[i]]
+        ibnegatives = centers[:i] + centers[(i+1):]
+
+        for side, label in zip(sides, labels):
+            batch_return.append(GroupInputExample(
+                center=side, 
+                texts=positive+ibnegatives,
+                labels=[1]+[0]*len(ibnegatives)
+            ))
+    return batch_return

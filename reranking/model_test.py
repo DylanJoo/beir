@@ -1,5 +1,6 @@
 import os
 import torch
+import inspect
 from typing import Dict, Type, Callable, List, Tuple
 from sentence_transformers.cross_encoder import CrossEncoder
 
@@ -11,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 from tqdm.autonotebook import tqdm, trange
 
 from pacerr.inputs import GroupInputExample
+
 class StandardCrossEncoder(CrossEncoder):
 
     def fit(
@@ -60,7 +62,12 @@ class StandardCrossEncoder(CrossEncoder):
                 `score`, `epoch`, `steps`
         :param show_progress_bar: If True, output a tqdm progress bar
         """
-        train_dataloader.collate_fn = self.smart_batching_collate
+        # [NOTE] remove the pre-collate function
+        if len(inspect.signature(self.smart_batching_collate).parameters.keys()) > 1:
+            collate_fn = lambda batch: self.smart_batching_collate(batch, True, False)
+            train_dataloader.collate_fn = collate_fn
+        else:
+            train_dataloader.collate_fn = self.smart_batching_collate
 
         if use_amp:
             from torch.cuda.amp import autocast
@@ -103,6 +110,10 @@ class StandardCrossEncoder(CrossEncoder):
             self.model.zero_grad()
             self.model.train()
 
+            # [NOTE] Since we remove the original batch
+            # for features, labels in tqdm(
+            #     train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
+            # ):
             for features, labels in tqdm(
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
@@ -183,25 +194,23 @@ class PACECrossEncoder(StandardCrossEncoder):
         )
         self.query_centric = query_centric
 
-    def smart_batching_collate(self, batch):
-        if self.query_centric:
-            batch = _qc_inbatch_negatives(batch)
-
+    def smart_batching_collate(self, batch, document_centric=False, query_centric=False):
         # collect data
         texts = [[], []]
         labels = []
 
-        for example in batch:
-            center = example.center
-            for i, text in enumerate(example.texts):
-                if self.query_centric:
-                    texts[0].append(center.strip()) 
-                    texts[1].append(text.strip()) 
-                    labels.append(example.labels[i])
-                else:
-                    texts[0].append(text.strip()) # different queries
-                    texts[1].append(center.strip())
-                    labels.append(example.labels[i])
+        if query_centric:
+            batch_qc = _qc_inbatch_negatives(batch)
+            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch_qc)
+            texts[0] += sentlist_left
+            texts[1] += sentlist_right
+            labels += scores
+
+        if document_centric:
+            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch)
+            texts[0] += sentlist_left
+            texts[1] += sentlist_right
+            labels += scores
 
         tokenized = self.tokenizer(*texts, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
         labels = torch.tensor(labels, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
@@ -209,7 +218,31 @@ class PACECrossEncoder(StandardCrossEncoder):
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self._target_device)
 
-        return tokenized, labels
+        return tokenized, labels, batch
+
+    def collate_from_inputs(self, batch, query_is_center=False):
+        """ 
+        In this study, we experiment on ALL document-wise training pairs.
+        The default value of `query_is_center` is False.
+        However, these can be transformed into query-wise training pairs as well.
+        """
+        sent_left = []
+        sent_right = []
+        labels = []
+        for example in batch:
+            center = example.center.strip()
+            for i, text in enumerate(example.texts):
+                if query_is_center:
+                    sent_left[0].append(center) 
+                    sent_right[1].append(text.strip()) 
+                    labels.append(example.labels[i])
+                else:
+                    sent_left[0].append(text.strip()) 
+                    sent_right[1].append(center)
+                    labels.append(example.labels[i])
+
+        return (sent_left, sent_right), labels
+
 
 # [test] add smart batch collate function
 def _qc_inbatch_negatives(batch):

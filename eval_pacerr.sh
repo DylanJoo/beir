@@ -1,7 +1,7 @@
 # for name in arguana climate-fever dbpedia-entity fiqa nfcorpus scidocs scifact trec-covid webis-touche2020;do
 
-data_dir=/home/jhju/pyserini/topics-and-qrels
 data_dir=/work/jhju/beir-runs
+data_dir=/home/jhju/pyserini/topics-and-qrels
 
 pseudo_q=$1
 objective=$2
