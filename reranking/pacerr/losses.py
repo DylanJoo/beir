@@ -1,7 +1,6 @@
 import math
 import torch
 from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
 from torch.nn import functional as F
 from torch.nn import MarginRankingLoss
 from torch.nn import BCEWithLogitsLoss
@@ -78,16 +77,17 @@ class CELoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
                  reduction: str = 'mean', 
-                 batchwise: bool = False):
+                 batchsize: int = None):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
-        self.batchwise = batchwise
+        self.batchsize = batchsize
 
     def forward(self, logits: Tensor, labels: Tensor):
-        n = self.examples_per_group
-        if self.batchwise:
-            n = int(math.sqrt( logits.size(0) // n )) # batch_d #q x batch_q
+        if self.batchsize:
+            n = self.batchsize
+        else:
+            n = self.examples_per_group
         logits = logits.view(-1, n) # reshape (B 1)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
@@ -108,9 +108,8 @@ class GroupwiseCELoss(nn.Module):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        for i in range(logits.size(-1)-1):
-            logits_ = logits[:, [0, i]]
-            loss += self.loss_fct(logits_, targets)
+        for idx in range(logits.size(-1)-1):
+            loss += self.loss_fct(logits[:, [0, idx+1]], targets)
         return loss / (logits.size(-1) - 1)
 
 class GroupwiseCELossV1(nn.Module):

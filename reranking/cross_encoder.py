@@ -222,9 +222,7 @@ class PACECrossEncoder(StandardCrossEncoder):
         tokenized_dc = labels_dc = None
         labels_dc = []
         if self.document_centric:
-            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch)
-            texts_0 = sentlist_left
-            texts_1 = sentlist_right
+            (texts_0, texts_1), scores = self.collate_from_inputs(batch)
             tokenized_dc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
             tokenized_dc.to(self._target_device)
             labels_dc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
@@ -233,9 +231,7 @@ class PACECrossEncoder(StandardCrossEncoder):
         tokenized_qc = labels_qc = None
         if self.query_centric:
             batch = _reverse_batch_negative(batch)
-            (sentlist_left, sentlist_right), scores = self.collate_from_inputs(batch, True)
-            texts_0 = sentlist_left
-            texts_1 = sentlist_right
+            (texts_0, texts_1), scores = self.collate_from_inputs(batch, True)
             tokenized_qc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
             tokenized_qc.to(self._target_device)
             labels_qc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
@@ -273,10 +269,12 @@ def _reverse_batch_negative(batch):
         positive = [centers[i]]
         ibnegatives = centers[:i] + centers[(i+1):]
 
-        for side, label in zip(sides, labels):
-            batch_return.append(GroupInputExample(
-                center=side, 
-                texts=positive+ibnegatives,
-                labels=[1]+[0]*len(ibnegatives)
-            ))
+        for i, (side, label) in enumerate(zip(sides, labels)):
+            # So far, we use only the first one.
+            if i == 0:
+                batch_return.append(GroupInputExample(
+                    center=side, 
+                    texts=positive+ibnegatives,
+                    labels=[1]+[0]*len(ibnegatives)
+                ))
     return batch_return
