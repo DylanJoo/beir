@@ -20,10 +20,6 @@ from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
-from pacerr.losses import MSELoss # PointwiseMSE and DistillationMSE
-from pacerr.losses import PairwiseHingeLoss, GroupwiseHingeLoss
-from pacerr.losses import CELoss, GroupwiseCELoss # PairwiseCE and GroupwiseCE
-from pacerr.losses import GroupwiseHingeLossV1, GroupwiseCELossV1
 from pacerr.loss_handler import LossHandler
 
 if __name__ == '__main__':
@@ -102,19 +98,22 @@ if __name__ == '__main__':
             ))
 
     #### Prepare dataloader
-            # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
+    # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
     train_dataloader = DataLoader(
             train_samples, 
             batch_size=args.batch_size,
             num_workers=0,
             shuffle=True, 
+            drop_last=True
     )
     n = 1 if 'pointwise' in args.objective else len(scores)
 
 
     #### Prepare losses
+    print(logging.info(f'The training data has {len(scores)} queries per document batch'))
     loss_handler = LossHandler(
             examples_per_group=n,
+            batch_size=args.batch_size,
             margin=args.margin,
             reduction='mean',
             stride=1,

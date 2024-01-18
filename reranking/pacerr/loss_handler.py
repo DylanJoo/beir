@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from .losses import MSELoss # PointwiseMSE and DistillationMSE
 from .losses import PairwiseHingeLoss, GroupwiseHingeLoss
 from .losses import CELoss, GroupwiseCELoss # PairwiseCE and GroupwiseCE
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 @dataclass
 class LossHandler:
     examples_per_group: int = 1
+    batch_size: Optional[int] = None # default it has 0
     margin: float = 1
     reduction: str = 'mean'
     stride: int = 1
@@ -61,7 +63,7 @@ class LossHandler:
             loss_fct = CELoss(
                     examples_per_group=n, 
                     reduction=self.reduction,
-                    batchwise=batchwise
+                    batchsize=self.batch_size if batchwise else None
             )
         if 'groupwise_ce_v1' in loss_name:
             self.logger.info("Using objective: GroupwiseCELossV1")
