@@ -92,23 +92,13 @@ class CELoss(nn.Module):
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 
-class GroupwiseCELoss(nn.Module):
-    def __init__(self, 
-                 examples_per_group: int = 1, 
-                 margin: float = 1, 
-                 stride: int = 1,    # the size between selected positions
-                 dilation: int = 1,  # the position of the paired negative 
-                 reduction: str = 'mean'):
-        super().__init__()
-        self.examples_per_group = examples_per_group
-        self.loss_fct = CrossEntropyLoss(reduction=reduction)
-        self.activation = nn.Sigmoid()
+class GroupwiseCELoss(CELoss):
 
     def forward(self, logits, labels):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        for idx in range(logits.size(-1)-1):
+        for idx in range(logits.size(-1) - 1):
             loss += self.loss_fct(logits[:, [0, idx+1]], targets)
         return loss / (logits.size(-1) - 1)
 
@@ -122,7 +112,6 @@ class GroupwiseCELossV1(nn.Module):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
-        self.activation = nn.Sigmoid()
         self.stride = stride
         self.dilation = dilation
         self.sample_indices = list(

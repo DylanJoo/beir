@@ -120,7 +120,9 @@ if __name__ == '__main__':
             dilation=1,
             logger=logging
     )
+    logging.info("Activate document-centric with the following loss.")
     loss_fct = loss_handler.loss(args.objective)
+    logging.info("Activate query-centric with the following loss.")
     loss_fct_qc = loss_handler.loss(args.objective, args.query_centric)
 
     #### Saving benchmark times

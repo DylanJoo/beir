@@ -271,10 +271,9 @@ def _reverse_batch_negative(batch):
 
         for i, (side, label) in enumerate(zip(sides, labels)):
             # So far, we use only the first one.
-            if i == 0:
-                batch_return.append(GroupInputExample(
-                    center=side, 
-                    texts=positive+ibnegatives,
-                    labels=[1]+[0]*len(ibnegatives)
-                ))
+            batch_return.append(GroupInputExample(
+                center=side, 
+                texts=positive+ibnegatives,
+                labels=[1]+[0]*len(ibnegatives)
+            ))
     return batch_return

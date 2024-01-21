@@ -53,17 +53,17 @@ class LossHandler:
                     reduction=self.reduction,
                 )
         if 'groupwise_ce' in loss_name:
-            self.logger.info("Using objective: GroupwiseCELoss")
-            loss_fct = GroupwiseCELoss(
-                    examples_per_group=n, 
-                    reduction=self.reduction
-            )
-        if 'groupwise_ce_all' in loss_name:
             self.logger.info("Using objective: CELoss")
             loss_fct = CELoss(
                     examples_per_group=n, 
                     reduction=self.reduction,
                     batchsize=self.batch_size if batchwise else None
+            )
+        if 'groupwise_ce_pair' in loss_name:
+            self.logger.info("Using objective: GroupwiseCELoss")
+            loss_fct = GroupwiseCELoss(
+                    examples_per_group=n, 
+                    reduction=self.reduction
             )
         if 'groupwise_ce_v1' in loss_name:
             self.logger.info("Using objective: GroupwiseCELossV1")
