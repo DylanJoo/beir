@@ -37,6 +37,7 @@ if __name__ == '__main__':
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--objective", type=str, default=None)
+    parser.add_argument("--objective_qc", type=str, default=None)
     parser.add_argument("--query_centric", action='store_true', default=False)
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
@@ -53,7 +54,7 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    if 'pointwise' in args.objective:
+    if 'pointwise' in args.objective or 'pointwise' in args.objective_qc:
         reranker = StandardCrossEncoder(args.model_name, num_labels=1,)
     else:
         reranker = PACECrossEncoder(args.model_name, 
@@ -64,8 +65,9 @@ if __name__ == '__main__':
 
     #### Add wandb 
     # wandb.init(name='debug')
+    objectives = f"qc: {args.objective_qc} | dc: {args.objective}"
     wandb.init(
-            name=f"{args.pseudo_queries.split('/')[-1]} @ {args.objective}",
+            name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
             config=reranker.config
     )
     wandb.watch(reranker.model, log_freq=10)
@@ -120,8 +122,11 @@ if __name__ == '__main__':
             dilation=1,
             logger=logging
     )
-    loss_fct = loss_handler.loss(args.objective)
-    loss_fct_qc = loss_handler.loss(args.objective, args.query_centric)
+    loss_fct_dc = loss_handler.loss(args.objective)
+    loss_fct_qc = loss_handler.loss(
+            args.objective_qc or args.objective, 
+            args.query_centric
+    )
 
     #### Saving benchmark times
     start = datetime.datetime.now()
@@ -140,7 +145,7 @@ if __name__ == '__main__':
     logging.info(f"The dataset has {len(train_dataloader)} batch")
     reranker.fit(
             train_dataloader=train_dataloader,
-            loss_fct=loss_fct,
+            loss_fct_dc=loss_fct_dc,
             loss_fct_qc=loss_fct_qc,
             evaluator=evaluator,
             epochs=args.num_epochs,
