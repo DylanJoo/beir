@@ -145,10 +145,7 @@ class StandardCrossEncoder(CrossEncoder):
             self.model.train()
 
             # [NOTE] add bidirectional training
-            # for features, labels in tqdm(
-            #     train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
-            # ):
-            for features_qc, labels_qc, features_dc, labels_dc in tqdm(
+            for features_dc, labels_dc, features_qc, labels_qc in tqdm(
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
@@ -220,7 +217,6 @@ class PACECrossEncoder(StandardCrossEncoder):
 
         # document centric
         tokenized_dc = labels_dc = None
-        labels_dc = []
         if self.document_centric:
             (texts_0, texts_1), scores = self.collate_from_inputs(batch)
             tokenized_dc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
@@ -257,7 +253,6 @@ class PACECrossEncoder(StandardCrossEncoder):
         return (sent_left, sent_right), labels
 
 
-# [test] add smart batch collate function
 def _reverse_batch_negative(batch):
     batch_return = []
 
@@ -270,10 +265,11 @@ def _reverse_batch_negative(batch):
         ibnegatives = centers[:i] + centers[(i+1):]
 
         for i, (side, label) in enumerate(zip(sides, labels)):
-            # So far, we use only the first one.
-            batch_return.append(GroupInputExample(
-                center=side, 
-                texts=positive+ibnegatives,
-                labels=[1]+[0]*len(ibnegatives)
-            ))
+            # [NOTE] So far, we use only the first one.
+            if i == 0:
+                batch_return.append(GroupInputExample(
+                    center=side, 
+                    texts=positive+ibnegatives,
+                    labels=[1]+[0]*len(ibnegatives)
+                ))
     return batch_return

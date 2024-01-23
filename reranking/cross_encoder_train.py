@@ -36,8 +36,8 @@ if __name__ == '__main__':
     parser.add_argument("--filtering", type=str, default="{}")
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--objective", type=str, default=None)
-    parser.add_argument("--objective_qc", type=str, default=None)
+    parser.add_argument("--objective_dc", type=str, default='')
+    parser.add_argument("--objective_qc", type=str, default='')
     parser.add_argument("--query_centric", action='store_true', default=False)
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    if 'pointwise' in args.objective or 'pointwise' in args.objective_qc:
+    if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
         reranker = StandardCrossEncoder(args.model_name, num_labels=1,)
     else:
         reranker = PACECrossEncoder(args.model_name, 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     #### Add wandb 
     # wandb.init(name='debug')
-    objectives = f"qc: {args.objective_qc} | dc: {args.objective}"
+    objectives = f"qc: {args.objective_qc} | dc: {args.objective_dc}"
     wandb.init(
             name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
             config=reranker.config
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
 
-        if 'pointwise' in args.objective:
+        if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
             for query, score in pairs:
                 train_samples.append(InputExample(texts=[query, document], label=score))
         else:
@@ -108,11 +108,11 @@ if __name__ == '__main__':
             shuffle=True, 
             drop_last=True
     )
-    n = 1 if 'pointwise' in args.objective else len(scores)
+    n = 1 if ('pointwise' in args.objective_dc or 'pointwise' in args.objective_qc) else len(scores)
 
 
     #### Prepare losses
-    print(logging.info(f'The training data has {len(scores)} queries per document batch'))
+    logging.info(f'The training data has {len(scores)} queries per document batch')
     loss_handler = LossHandler(
             examples_per_group=n,
             batch_size=args.batch_size,
@@ -122,11 +122,8 @@ if __name__ == '__main__':
             dilation=1,
             logger=logging
     )
-    loss_fct_dc = loss_handler.loss(args.objective)
-    loss_fct_qc = loss_handler.loss(
-            args.objective_qc or args.objective, 
-            args.query_centric
-    )
+    loss_fct_dc = loss_handler.loss(args.objective_dc, False)
+    loss_fct_qc = loss_handler.loss(args.objective_qc, True)
 
     #### Saving benchmark times
     start = datetime.datetime.now()

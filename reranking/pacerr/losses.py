@@ -77,15 +77,15 @@ class CELoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
                  reduction: str = 'mean', 
-                 batchsize: int = None):
+                 batch_size: int = None):
         super().__init__()
         self.examples_per_group = examples_per_group
         self.loss_fct = CrossEntropyLoss(reduction=reduction)
-        self.batchsize = batchsize
+        self.batch_size = batch_size
 
     def forward(self, logits: Tensor, labels: Tensor):
-        if self.batchsize:
-            n = self.batchsize
+        if self.batch_size:
+            n = self.batch_size
         else:
             n = self.examples_per_group
         logits = logits.view(-1, n) # reshape (B 1)
@@ -125,6 +125,7 @@ class GroupwiseCELossV1(nn.Module):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
+        print('groupwise', logits.shape)
         for idx in self.sample_indices:
             logits_ = logits[:, [idx, (idx+self.dilation)] ]
             loss += self.loss_fct(logits_, targets)

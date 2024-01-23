@@ -16,7 +16,7 @@ class LossHandler:
     dilation: int = 1
     logger: logging = None
 
-    def loss(self, loss_name, batchwise=False):
+    def loss(self, loss_name='', query_centric=False):
 
         loss_fct = None
         n = self.examples_per_group
@@ -57,7 +57,7 @@ class LossHandler:
             loss_fct = CELoss(
                     examples_per_group=n, 
                     reduction=self.reduction,
-                    batchsize=self.batch_size if batchwise else None
+                    batch_size=self.batch_size if query_centric else None # use the doc batch as dim1
             )
         if 'groupwise_ce_pair' in loss_name:
             self.logger.info("Using objective: GroupwiseCELoss")
