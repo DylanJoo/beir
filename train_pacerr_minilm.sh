@@ -140,7 +140,7 @@ for data in baseline calibrate unlikelihood;do
                 --pseudo_queries $file \
                 --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
                 --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-                --batch_size 4 \
+                --batch_size 8 \
                 --num_epochs 1 \
                 --learning_rate 7e-6 \
                 --do_eval \

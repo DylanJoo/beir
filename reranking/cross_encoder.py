@@ -39,9 +39,12 @@ class StandardCrossEncoder(CrossEncoder):
         self, 
         features,
         labels,
-        loss_fct=nn.BCEWithLogitsLoss(),
+        loss_fct=None,
         activation_fct=nn.Identity(),
     ):
+        if loss_fct is None:
+            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+
         if features is not None:
             model_predictions = self.model(**features, return_dict=True)
             logits = activation_fct(model_predictions.logits)
@@ -57,7 +60,7 @@ class StandardCrossEncoder(CrossEncoder):
         train_dataloader: DataLoader,
         evaluator: SentenceEvaluator = None,
         epochs: int = 1,
-        loss_fct=None,
+        loss_fct_dc=None,
         loss_fct_qc=None,
         activation_fct=nn.Identity(),
         scheduler: str = "WarmupLinear",
@@ -83,7 +86,7 @@ class StandardCrossEncoder(CrossEncoder):
         :param train_dataloader: DataLoader with training InputExamples
         :param evaluator: An evaluator (sentence_transformers.evaluation) evaluates the model performance during training on held-out dev data. It is used to determine the best model that is saved to disc.
         :param epochs: Number of epochs for training
-        :param loss_fct: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
+        :param loss_fct_dc: Which loss function to use for training. If None, will use nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
         :param loss_fct_qc: the loss function for traininig query-centric (standard) examples.
         :param activation_fct: Activation function applied on top of logits output of model.
         :param scheduler: Learning rate scheduler. Available schedulers: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
@@ -135,9 +138,6 @@ class StandardCrossEncoder(CrossEncoder):
                 optimizer, scheduler=scheduler, warmup_steps=warmup_steps, t_total=num_train_steps
             )
 
-        if loss_fct is None:
-            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
@@ -154,8 +154,8 @@ class StandardCrossEncoder(CrossEncoder):
                 if use_amp:
                     with autocast():
                         # [NOTE] add bidirectional training
-                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct)
-                        loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_qc)
+                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+                        loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
                         loss_value = loss_value_qc + loss_value_dc
 
                     scale_before_step = scaler.get_scale()
@@ -168,8 +168,8 @@ class StandardCrossEncoder(CrossEncoder):
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
                     # [NOTE] add bidirectional training
-                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct)
-                    loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_qc)
+                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+                    loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
                     loss_value = loss_value_qc + loss_value_dc
 
                     loss_value.backward()
