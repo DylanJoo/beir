@@ -125,7 +125,6 @@ class GroupwiseCELossV1(nn.Module):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
-        print('groupwise', logits.shape)
         for idx in self.sample_indices:
             logits_ = logits[:, [idx, (idx+self.dilation)] ]
             loss += self.loss_fct(logits_, targets)
