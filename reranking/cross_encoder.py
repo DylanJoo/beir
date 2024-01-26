@@ -39,7 +39,7 @@ class StandardCrossEncoder(CrossEncoder):
         self, 
         features,
         labels,
-        loss_fct=None,
+        loss_fct,
         activation_fct=nn.Identity(),
     ):
         if loss_fct is None:
@@ -214,7 +214,6 @@ class StandardCrossEncoder(CrossEncoder):
 class PACECrossEncoder(StandardCrossEncoder):
 
     def smart_batching_collate(self, batch):
-
         # document centric
         tokenized_dc = labels_dc = None
         if self.document_centric:
@@ -231,7 +230,6 @@ class PACECrossEncoder(StandardCrossEncoder):
             tokenized_qc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
             tokenized_qc.to(self._target_device)
             labels_qc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
-
         return tokenized_dc, labels_dc, tokenized_qc, labels_qc
 
     def collate_from_inputs(self, batch, query_is_center=False):
@@ -249,7 +247,6 @@ class PACECrossEncoder(StandardCrossEncoder):
                     sent_left.append(text.strip()) 
                     sent_right.append(center)
                     labels.append(example.labels[i])
-
         return (sent_left, sent_right), labels
 
 

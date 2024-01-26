@@ -85,15 +85,15 @@ class CELoss(nn.Module):
 
     def forward(self, logits: Tensor, labels: Tensor):
         if self.batch_size:
-            n = self.batch_size
+            n_rows = self.batch_size * 1 # this can be more than 1
+            logits = logits.view(n_rows, -1) 
         else:
-            n = self.examples_per_group
-        logits = logits.view(-1, n) # reshape (B 1)
+            n_cols = self.examples_per_group
+            logits = logits.view(-1, n_cols) # reshape (B n). this is document-centirc
         targets = torch.zeros(logits.size(0), dtype=torch.long).to(logits.device)
         return self.loss_fct(logits, targets)
 
 class GroupwiseCELoss(CELoss):
-
     def forward(self, logits, labels):
         loss = 0
         logits = logits.view(-1, self.examples_per_group)

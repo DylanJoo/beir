@@ -12,6 +12,7 @@ import datetime
 import logging
 import argparse 
 import wandb
+import torch
 
 from torch.utils.data import DataLoader
 
@@ -32,6 +33,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=1)
     parser.add_argument("--device", type=str, default='cuda')
+    parser.add_argument("--max_length", type=int, default=512)
     # setting
     parser.add_argument("--filtering", type=str, default="{}")
     # training
@@ -43,6 +45,7 @@ if __name__ == '__main__':
     parser.add_argument("--margin", type=int, default=1)
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
+    parser.add_argument("--debug", action='store_true', default=False)
     # saving 
     parser.add_argument("--save_last", action='store_true', default=False)
     args = parser.parse_args()
@@ -60,17 +63,20 @@ if __name__ == '__main__':
         reranker = PACECrossEncoder(args.model_name, 
                                     num_labels=1, 
                                     device=args.device,
+                                    max_length=args.max_length,
                                     query_centric=args.query_centric,
                                     document_centric=args.document_centric)
 
     #### Add wandb 
-    # wandb.init(name='debug')
-    objectives = f"qc: {args.objective_qc} | dc: {args.objective_dc}"
-    wandb.init(
-            name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
-            config=reranker.config
-    )
-    wandb.watch(reranker.model, log_freq=10)
+    if args.debug:
+        wandb.init(name='debug')
+    else:
+        objectives = f"qc: {args.objective_qc} | dc: {args.objective_dc}"
+        wandb.init(
+                name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
+                config=reranker.config
+        )
+        wandb.watch(reranker.model, log_freq=10)
 
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
@@ -101,6 +107,7 @@ if __name__ == '__main__':
 
     #### Prepare dataloader
     # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
+    torch.manual_seed(2024)
     train_dataloader = DataLoader(
             train_samples, 
             batch_size=args.batch_size,
