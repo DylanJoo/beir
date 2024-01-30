@@ -27,8 +27,8 @@ def load_corpus(path):
             title = data.get('title', "").strip()
             text = data.get('text', "").strip()
             corpus[str(docid)] = title + " " + text
-    print('Example document:', title + " " + text, \
-            '\ntotal amount', len(corpus))
+    # print('Example document:', title + " " + text, \
+    #         '\ntotal amount', len(corpus))
     return corpus
 
 def load_queries(path):
@@ -39,8 +39,8 @@ def load_queries(path):
             qid = data['_id']
             text = data['text'].strip()
             queries[str(qid)] = text
-    print('Example query:', text, \
-            '\ntotal amount', len(queries))
+    # print('Example query:', text, \
+    #         '\ntotal amount', len(queries))
     return queries
 
 def load_pseudo_queries(path):
@@ -55,8 +55,8 @@ def load_pseudo_queries(path):
             # sort by (given) scores (from large to small)
             pcentric_queries[str(docid)] = sorted(to_return, key=lambda x: x[1], reverse=True) 
 
-    print('Example pseudo query:', texts[0], scores[0], \
-            '\ntotal amount', len(pcentric_queries))
+    # print('Example pseudo query:', texts[0], scores[0], \
+    #         '\ntotal amount', len(pcentric_queries))
     return pcentric_queries
 
 def load_results(path, topk=2000):
@@ -67,30 +67,30 @@ def load_results(path, topk=2000):
             if int(rank) <= topk:
                 input_run[str(qid)].append(str(docid))
 
-    print('Example run', (qid, docid, rank, score), \
-            'total amount', len(input_run))
+    # print('Example run', (qid, docid, rank, score), \
+    #         'total amount', len(input_run))
     return input_run
 
 def load_and_convert_qrels(path, queries, corpus_texts):
-    q_positives = collections.defaultdict(list)
-    q_negatives = collections.defaultdict(list)
+    positives = collections.defaultdict(list)
+    negatives = collections.defaultdict(list)
 
     # load qrels
     with open(path, 'r') as f:
         for line in f:
             qid, _, docid, rel = line.strip().split()
             if int(rel) > 0:
-                q_positives[qid].append(corpus_texts[docid].strip())
+                positives[qid].append(corpus_texts[docid].strip())
             else:
-                q_negatives[qid].append(corpus_texts[docid].strip())
+                negatives[qid].append(corpus_texts[docid].strip())
 
     # convert qrels to samples
     sample_list = []
-    for qid in q_positives:
+    for qid in positives:
         sample_list.append({
             "query": queries[qid].strip(),
-            "positive": q_positives[qid], 
-            "negative": q_negatives[qid]
+            "positive": positives[qid], 
+            "negative": negatives[qid]
         })
     return sample_list
 

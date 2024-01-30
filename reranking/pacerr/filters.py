@@ -8,7 +8,7 @@ def top(iterable: List[Tuple], num=1):
     return iterable[:num]
 
 def bottom(iterable: List[Tuple], num=1):
-    return iterable[-num:]
+    return iterable[:1] + iterable[-num:]
 
 def identity(iterable: List[Tuple], **kwargs):
     return iterable

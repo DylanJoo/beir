@@ -18,6 +18,11 @@ class LossHandler:
 
     def loss(self, loss_name='', query_centric=False):
 
+        if query_centric:
+            self.logger.info("Below is the query_centric objective")
+        else:
+            self.logger.info("Below is the document_centric objective")
+
         loss_fct = None
         n = self.examples_per_group
         # Hinge

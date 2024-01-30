@@ -1,5 +1,4 @@
 from sentence_transformers.cross_encoder import CrossEncoder
-from cross_encoder import StandardCrossEncoder, PACECrossEncoder
 from sentence_transformers import InputExample
 from operator import itemgetter
 import random
@@ -15,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pacerr.filters import filter_function_map
-from pacerr.utils import load_corpus, load_pseudo_queries
+from pacerr.utils import load_corpus, load_results, load_pseudo_queries
 from pacerr.utils import load_queries, load_and_convert_qrels
 from pacerr.utils import LoggingHandler
 from pacerr.inputs import GroupInputExample
@@ -37,8 +36,7 @@ if __name__ == '__main__':
     parser.add_argument("--filtering", type=str, default="{}")
     # training
     parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--objective_dc", type=str, default='')
-    parser.add_argument("--objective_qc", type=str, default='')
+    parser.add_argument("--objective", type=str, default='')
     parser.add_argument("--query_centric", action='store_true', default=False)
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
@@ -56,21 +54,20 @@ if __name__ == '__main__':
                         handlers=[LoggingHandler()])
 
     #### Reranking using Cross-Encoder model
-    if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
-        reranker = StandardCrossEncoder(args.model_name, num_labels=1,)
-    else:
-        reranker = PACECrossEncoder(args.model_name, 
-                                    num_labels=1, 
-                                    device=args.device,
-                                    max_length=args.max_length,
-                                    query_centric=args.query_centric,
-                                    document_centric=args.document_centric)
+    from cross_encoder_test import PACECrossEncoder
+    reranker = PACECrossEncoder(args.model_name, 
+                                num_labels=1, 
+                                device=args.device,
+                                max_length=args.max_length,
+                                query_centric=args.query_centric,
+                                document_centric=args.document_centric)
+    # reranker.setup_tunable('classifier')
 
     #### Add wandb 
     if args.debug:
         wandb.init(name='debug')
     else:
-        objectives = f"qc: {args.objective_qc} | dc: {args.objective_dc}"
+        objectives = f"qcdc: {args.objective}"
         wandb.init(
                 name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
                 config=reranker.config
@@ -95,14 +92,10 @@ if __name__ == '__main__':
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
 
-        if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
-            for query, score in pairs:
-                train_samples.append(InputExample(texts=[query, document], label=score))
-        else:
-            queries, scores = map(list, (list(zip(*pairs))) )
-            train_samples.append(GroupInputExample(
-                center=document, texts=queries, labels=scores
-            ))
+        queries, scores = map(list, (list(zip(*pairs))) )
+        train_samples.append(GroupInputExample(
+            center=document, texts=queries, labels=scores
+        ))
 
     #### Prepare dataloader
     # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
@@ -114,8 +107,8 @@ if __name__ == '__main__':
             shuffle=True, 
             drop_last=True
     )
-    n = 1 if ('pointwise' in args.objective_dc or 'pointwise' in args.objective_qc) else len(scores)
-
+    # qc has N, dc has N and the one is overlapped.
+    n = len(scores) - 1 + args.batch_size
 
     #### Prepare losses
     logging.info(f'The training data has {len(scores)} queries per document batch')
@@ -128,14 +121,12 @@ if __name__ == '__main__':
             dilation=1,
             logger=logging
     )
-    loss_fct_dc = loss_handler.loss(args.objective_dc, False)
-    loss_fct_qc = loss_handler.loss(args.objective_qc, True)
+    loss_fct_dc = loss_handler.loss(args.objective, query_centric=False)
 
     #### Saving benchmark times
     start = datetime.datetime.now()
 
     #### Add evaluation
-    evaluator = None
     if args.do_eval:
         queries = load_queries(os.path.join(args.dataset, 'queries.jsonl'))
         dev_samples = load_and_convert_qrels(
@@ -149,8 +140,7 @@ if __name__ == '__main__':
     logging.info(f"The dataset has {len(train_dataloader)} batch")
     reranker.fit(
             train_dataloader=train_dataloader,
-            loss_fct_dc=loss_fct_dc,
-            loss_fct_qc=loss_fct_qc,
+            loss_fct_dc=loss_fct_dc, # cast all into document-centric
             evaluator=evaluator,
             epochs=args.num_epochs,
             evaluation_steps=len(train_dataloader) // 5,  

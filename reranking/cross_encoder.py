@@ -151,9 +151,15 @@ class StandardCrossEncoder(CrossEncoder):
                 if use_amp:
                     with autocast():
                         # [NOTE] add bidirectional training
-                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
                         loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
-                        loss_value = loss_value_qc + loss_value_dc
+                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+
+                        if self.query_centric and self.document_centric:
+                            loss_value = loss_value_dc + loss_value_qc
+                        elif self.document_centric:
+                            loss_value = loss_value_dc
+                        elif self.query_centric:
+                            loss_value = loss_value_qc
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
@@ -165,9 +171,15 @@ class StandardCrossEncoder(CrossEncoder):
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
                     # [NOTE] add bidirectional training
-                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
                     loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
-                    loss_value = loss_value_qc + loss_value_dc
+                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+
+                    if self.query_centric and self.document_centric:
+                        loss_value = loss_value_dc + loss_value_qc
+                    elif self.document_centric:
+                        loss_value = loss_value_dc
+                    elif self.query_centric:
+                        loss_value = loss_value_qc
 
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
@@ -192,13 +204,13 @@ class StandardCrossEncoder(CrossEncoder):
                         evaluator, output_path, save_best_model, epoch, training_steps, callback
                     )
 
-                    wandb.log({"eval_mean_mrr": score})
+                    wandb.log({"eval_score": score})
                     self.model.zero_grad()
                     self.model.train()
 
             if evaluator is not None:
                 score = self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
-                wandb.log({"eval_mean_mrr": score})
+                wandb.log({"eval_score": score})
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         if evaluator is not None:
