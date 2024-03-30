@@ -3,6 +3,7 @@ import collections
 import logging
 import tqdm
 import json
+import numpy as np
 
 class LoggingHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
@@ -71,9 +72,15 @@ def load_results(path, topk=2000):
     #         'total amount', len(input_run))
     return input_run
 
-def load_and_convert_qrels(path, queries, corpus_texts):
+def load_and_convert_qrels(path, queries, corpus_texts, use_random_negatives=None, use_bm25_negatives=False):
+    if use_bm25_negatives:
+        doc_to_rerank = load_results(use_bm25_negatives, topk=100)
+    else:
+        doc_to_rerank = collections.defaultdict(list)
+
     positives = collections.defaultdict(list)
     negatives = collections.defaultdict(list)
+    all_negative_docids = []
 
     # load qrels
     with open(path, 'r') as f:
@@ -81,12 +88,26 @@ def load_and_convert_qrels(path, queries, corpus_texts):
             qid, _, docid, rel = line.strip().split()
             if int(rel) > 0:
                 positives[qid].append(corpus_texts[docid].strip())
+                try:
+                    doc_to_rerank[qid].remove(docid)
+                except:
+                    pass
             else:
                 negatives[qid].append(corpus_texts[docid].strip())
+                all_negative_docids.append(docid)
+
+    # add random (in-batch) negatives for evaluation
+    all_negative_docids = list(set(all_negative_docids))
+    N_neg = len(all_negative_docids)
 
     # convert qrels to samples
     sample_list = []
     for qid in positives:
+        if use_random_negatives:
+            selected_negative_docids = [all_negative_docids[i] for i in np.random.randint(0, N_neg, use_random_negatives)]
+            negatives[qid] += [corpus_texts[docid].strip() for docid in selected_negative_docids]
+        if use_bm25_negatives:
+            negatives[qid] += [corpus_texts[docid].strip() for docid in doc_to_rerank[qid]]
         sample_list.append({
             "query": queries[qid].strip(),
             "positive": positives[qid], 

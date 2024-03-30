@@ -13,7 +13,7 @@ class PACECrossEncoder(StandardCrossEncoder):
                 param.requires_grad = False
 
     def smart_batching_collate(self, batch):
-        """Recast all the input into document-centric""" 
+        """Recast all the input into query-centric""" 
         tokenized = labels = None
         batch_for_qc = _reverse_batch_negative(batch)
         (texts_0, texts_1), scores = self.collate_from_inputs(batch_for_qc, batch)
@@ -21,7 +21,7 @@ class PACECrossEncoder(StandardCrossEncoder):
         tokenized = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
         tokenized.to(self._target_device)
         labels = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
-        return tokenized, labels, None, None
+        return None, None, tokenized, labels
 
     def collate_from_inputs(self, batch_qc, batch_dc):
         assert len(batch_qc) == len(batch_dc), 'inconsistent size'
@@ -37,16 +37,20 @@ class PACECrossEncoder(StandardCrossEncoder):
             sent_right.append(document_1)
             labels.append(1)
 
-            for i, document_0 in enumerate(example_qc.texts[1:]):
-                # document_is_center:
+            for i, document in enumerate(example_qc.texts[1:]):
+                # query_is_center:
                 sent_left.append(query_1) 
-                sent_right.append(document_0.strip())
+                sent_right.append(document.strip())
                 labels.append(0)
 
-            for i, query_0 in enumerate(example_dc.texts[1:]):
-                # query_is_center:
-                sent_left.append(query_0.strip()) 
-                sent_right.append(document_1)
+            for i, query in enumerate(example_dc.texts[1:]):
+                # document_is_center:
+                if self.change_dc_to_qq:
+                    sent_left.append(query_1) 
+                    sent_right.append(query.strip())
+                else:
+                    sent_left.append(query.strip()) 
+                    sent_right.append(document_1)
                 labels.append(0)
 
         return (sent_left, sent_right), labels

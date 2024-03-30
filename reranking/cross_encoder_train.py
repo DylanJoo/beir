@@ -28,11 +28,13 @@ if __name__ == '__main__':
     parser.add_argument("--output_path", type=str, default=None)
     parser.add_argument("--pseudo_queries", type=str, default=None)
     parser.add_argument("--qrels", type=str, default=None)
+    parser.add_argument("--run_bm25", type=str, default=None)
     parser.add_argument("--model_name", type=str, default="cross-encoder/ms-marco-MiniLM-L-6-v2")
+    parser.add_argument("--init_model_name", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_epochs", type=int, default=1)
     parser.add_argument("--device", type=str, default='cuda')
-    parser.add_argument("--max_length", type=int, default=512)
+    parser.add_argument("--max_length", type=int, default=384)
     # setting
     parser.add_argument("--filtering", type=str, default="{}")
     # training
@@ -42,6 +44,8 @@ if __name__ == '__main__':
     parser.add_argument("--query_centric", action='store_true', default=False)
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
+    parser.add_argument("--change_dc_to_qq", action='store_true', default=False)
+    parser.add_argument("--reduction", type=str, default='mean')
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
     parser.add_argument("--debug", action='store_true', default=False)
@@ -64,18 +68,27 @@ if __name__ == '__main__':
                                     device=args.device,
                                     max_length=args.max_length,
                                     query_centric=args.query_centric,
-                                    document_centric=args.document_centric)
+                                    document_centric=args.document_centric,
+                                    change_dc_to_qq=args.change_dc_to_qq)
 
     #### Add wandb 
     if args.debug:
-        wandb.init(name='debug')
+        objectives = "debug"
     else:
-        objectives = f"qc: {args.objective_qc} | dc: {args.objective_dc}"
-        wandb.init(
-                name=f"{args.pseudo_queries.split('/')[-1]} @ {objectives}",
-                config=reranker.config
-        )
-        wandb.watch(reranker.model, log_freq=10)
+        objectives = f"qc:{args.objective_qc}-dc:{args.objective_dc}"
+        if args.change_dc_to_qq:
+            objectives += "-qq"
+
+    os.environ["WANDB_PROJECT"] = f"{objectives.replace(':', '-')}"
+    wandb.init(
+            name=f"{args.pseudo_queries.split('/')[-1]}-{objectives}",
+            config=reranker.config
+    )
+    wandb.watch(reranker.model, log_freq=10)
+
+    if args.init_model_name is not None:
+        reranker.perge(init_name=args.init_model_name)
+        logging.info(f'Initialize with {args.init_model_name}')
 
     #### Load data
     corpus_texts = load_corpus(os.path.join(args.dataset, 'corpus.jsonl'))
@@ -94,15 +107,14 @@ if __name__ == '__main__':
 
         #### Filtering
         pairs = filter_fn(pseudo_queries[docid], **filter_args)
-
-        if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
-            for query, score in pairs:
-                train_samples.append(InputExample(texts=[query, document], label=score))
-        else:
-            queries, scores = map(list, (list(zip(*pairs))) )
-            train_samples.append(GroupInputExample(
-                center=document, texts=queries, labels=scores
-            ))
+        queries, scores = map(list, (list(zip(*pairs))) )
+        train_samples.append(GroupInputExample(
+            center=document, texts=queries, labels=scores
+        ))
+        # [deprecated] only consider pooled BCE when using pointwise
+        # if 'pointwise' in args.objective_dc or 'pointwise' in args.objective_qc:
+        #     for query, score in pairs:
+        #         train_samples.append(InputExample(texts=[query, document], label=score))
 
     #### Prepare dataloader
     # [NOTE] remove this: collate_fn=reranker.smart_batching_collate, # in fact, no affect
@@ -114,16 +126,20 @@ if __name__ == '__main__':
             shuffle=True, 
             drop_last=True
     )
-    n = 1 if ('pointwise' in args.objective_dc or 'pointwise' in args.objective_qc) else len(scores)
+    n = len(scores)
 
 
     #### Prepare losses
-    logging.info(f'The training data has {len(scores)} queries per document batch')
+    logging.info(
+            f'The training data was built on document-wise batch, which is not in common.' +  \
+            f'But we will replicate it and fit it to query-wise.' +  \
+            f'Note that there are {len(scores)} queries per document batch'
+    )
     loss_handler = LossHandler(
             examples_per_group=n,
             batch_size=args.batch_size,
             margin=args.margin,
-            reduction='mean',
+            reduction=args.reduction,
             stride=1,
             dilation=1,
             logger=logging
@@ -141,7 +157,8 @@ if __name__ == '__main__':
         dev_samples = load_and_convert_qrels(
                 path=args.qrels,
                 queries=queries,
-                corpus_texts=corpus_texts
+                corpus_texts=corpus_texts,
+                use_bm25_negatives=args.run_bm25
         )
         evaluator = CERerankingEvaluator_ndcg(dev_samples, name='test')
 
@@ -153,7 +170,7 @@ if __name__ == '__main__':
             loss_fct_qc=loss_fct_qc,
             evaluator=evaluator,
             epochs=args.num_epochs,
-            evaluation_steps=len(train_dataloader) // 5,  
+            evaluation_steps=len(train_dataloader) // 5,
             warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
             output_path=args.output_path, # only save when evaluation

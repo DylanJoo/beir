@@ -7,7 +7,49 @@ from torch.nn import BCEWithLogitsLoss
 from torch.nn import CrossEntropyLoss
 from torch.nn import MSELoss
 
-class PairwiseHingeLoss(nn.Module):
+class InbatchBCELoss(nn.Module):
+    def __init__(self, 
+                 examples_per_group: int = 1, 
+                 reduction: str = 'mean', 
+                 batch_size: int = None, 
+                 negative_selection: 'str' = 'all'):
+        super().__init__()
+        self.examples_per_group = examples_per_group
+        self.loss_fct = BCEWithLogitsLoss(reduction=reduction)
+        self.batch_size = batch_size
+        self.negative_selection = negative_selection
+        assert (negative_selection != 'all') == (reduction == 'none'), \
+                'reduction should be the none thus negative selection.'
+
+    def forward(self, logits: Tensor, labels: Tensor):
+        if self.batch_size:
+            n_rows = self.batch_size * 1 # this can be more than 1
+            logits = logits.view(n_rows, -1) 
+        else:
+            n_cols = self.examples_per_group
+            logits = logits.view(-1, n_cols) # reshape (B n). this is document-centirc
+        targets = torch.zeros(logits.size()).to(logits.device)
+        targets[:, 0] = 1.0
+
+        # pooled the logits and targets into one list
+        loss = self.loss_fct(logits.view(-1), targets.view(-1))
+
+        if self.negative_selection == 'hard':
+            loss_matrix = loss.view(targets.size())
+            loss = loss_matrix[:, 0].mean()
+            loss += loss_matrix[:, 1:].max(-1).values.mean()
+            return loss / 2
+        elif self.negative_selection == 'random':
+            loss_matrix = loss.view(targets.size())
+            B, N = targets.size(0), targets.size(1)
+            samples = 1+torch.randint(N-1, (B, 1), device=logits.device)
+            loss = loss_matrix[:, 0].mean()
+            loss += loss_matrix.gather(1, samples).mean()
+            return loss / 2
+        else:
+            return loss.mean()
+
+class HingeLoss(nn.Module):
     def __init__(self, 
                  examples_per_group: int = 1, 
                  margin: float = 1, 
@@ -28,7 +70,7 @@ class PairwiseHingeLoss(nn.Module):
         loss = self.loss_fct(logits_positive, logits_negaitve, targets)
         return loss
 
-class GroupwiseHingeLoss(PairwiseHingeLoss):
+class GroupwiseHingeLoss(HingeLoss):
     """ [NOTE 1] It can also be like warp """
     def forward(self, logits: Tensor, labels: Tensor):
         loss = 0

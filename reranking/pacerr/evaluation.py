@@ -68,7 +68,9 @@ class CERerankingEvaluator_ndcg:
             # for ir measures
             runs[f"Q_{i}"] = {f"D_{k}": float(v) for k, v in enumerate(pred_scores)}
 
-        aggregated_ndcg = ir_measures.calc_aggregate([nDCG@10], qrels, runs)[nDCG@10]
+        aggregated_scores = ir_measures.calc_aggregate([nDCG@10, nDCG], qrels, runs)
+        aggregated_ndcg = aggregated_scores[nDCG@10]
+        aggregated_ndcg_all = aggregated_scores[nDCG]
 
         logger.info(
             "Queries: {} \t Positives: Min {:.1f}, Mean {:.1f}, Max {:.1f} \t Negatives: Min {:.1f}, Mean {:.1f}, Max {:.1f}".format(
@@ -81,12 +83,13 @@ class CERerankingEvaluator_ndcg:
                 np.max(num_negatives),
             )
         )
-        logger.info("ndcg@10: {:.2f}".format(aggregated_ndcg * 100))
+        logger.info("ndcg@10: {:.2f}".format(aggregated_ndcg * 100)) 
+        logger.info("ndcg {:.2f}".format(aggregated_ndcg_all * 100))
 
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
-            with open(csv_path, mode="w" if output_file_exists else "w", encoding="utf-8") as f:
+            with open(csv_path, mode="a" if output_file_exists else "w", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)
@@ -178,7 +181,7 @@ class CERerankingEvaluator_MAP:
         if output_path is not None and self.write_csv:
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
-            with open(csv_path, mode="w" if output_file_exists else "w", encoding="utf-8") as f:
+            with open(csv_path, mode="a" if output_file_exists else "w", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if not output_file_exists:
                     writer.writerow(self.csv_headers)

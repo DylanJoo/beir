@@ -7,9 +7,6 @@ calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1
 calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1652
 calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1608
 calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1511
-unlikelihood_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1427
-unlikelihood_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1506
-unlikelihood_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1472
 
 baseline_bs4_top1-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1642
 baseline_bs4_top2-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1636
@@ -20,6 +17,13 @@ calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1
 calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1627
 calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1615
 calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1407
-unlikelihood_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1501
-unlikelihood_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1579
-unlikelihood_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1452
+
+baseline_bs4_top1-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1568
+baseline_bs4_top2-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1625
+baseline_bs4_top4-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1567
+calibrate_margin_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1580
+calibrate_margin_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1585
+calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1576
+calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1578
+calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1583
+calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1534

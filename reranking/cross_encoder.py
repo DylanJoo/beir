@@ -26,6 +26,7 @@ class StandardCrossEncoder(CrossEncoder):
         classifier_dropout: float = None,
         query_centric: bool = False,
         document_centric: bool = False,
+        change_dc_to_qq: bool = False,
     ):
         super().__init__(
                 model_name, num_labels, max_length, 
@@ -34,6 +35,10 @@ class StandardCrossEncoder(CrossEncoder):
         )
         self.query_centric = query_centric
         self.document_centric = document_centric
+        self.change_dc_to_qq = change_dc_to_qq
+
+    def perge(self, init_name):
+        self.model.bert = self.model.bert.from_pretrained(init_name)
 
     def compute_loss(
         self, 
@@ -42,9 +47,6 @@ class StandardCrossEncoder(CrossEncoder):
         loss_fct,
         activation_fct=nn.Identity(),
     ):
-        if loss_fct is None:
-            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-
         if features is not None:
             model_predictions = self.model(**features, return_dict=True)
             logits = activation_fct(model_predictions.logits)
@@ -153,13 +155,7 @@ class StandardCrossEncoder(CrossEncoder):
                         # [NOTE] add bidirectional training
                         loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
                         loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
-
-                        if self.query_centric and self.document_centric:
-                            loss_value = loss_value_dc + loss_value_qc
-                        elif self.document_centric:
-                            loss_value = loss_value_dc
-                        elif self.query_centric:
-                            loss_value = loss_value_qc
+                        loss_value = loss_value_dc + loss_value_qc # normal addition
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
@@ -173,24 +169,14 @@ class StandardCrossEncoder(CrossEncoder):
                     # [NOTE] add bidirectional training
                     loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
                     loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
-
-                    if self.query_centric and self.document_centric:
-                        loss_value = loss_value_dc + loss_value_qc
-                    elif self.document_centric:
-                        loss_value = loss_value_dc
-                    elif self.query_centric:
-                        loss_value = loss_value_qc
+                    loss_value = loss_value_dc + loss_value_qc # normal addition
 
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
                 
                 if training_steps % 100 == 0:
-                    wandb.log({"loss": loss_value})
-                    if loss_value_qc:
-                        wandb.log({"loss_qc": loss_value_qc})
-                    if loss_value_dc:
-                        wandb.log({"loss_dc": loss_value_dc})
+                    wandb.log({"loss": loss_value, "loss_qc": loss_value_qc, "loss_dc": loss_value_dc})
 
                 optimizer.zero_grad()
 
@@ -256,9 +242,15 @@ class PACECrossEncoder(StandardCrossEncoder):
                     sent_right.append(text.strip()) 
                     labels.append(example.labels[i])
                 else:
-                    sent_left.append(text.strip()) 
-                    sent_right.append(center)
-                    labels.append(example.labels[i])
+                    if self.change_dc_to_qq:
+                        # fixed the left as positive query
+                        sent_left.append(example.texts[0].strip()) 
+                        sent_right.append(text)
+                        labels.append(example.labels[i])
+                    else:
+                        sent_left.append(text.strip()) 
+                        sent_right.append(center)
+                        labels.append(example.labels[i])
         return (sent_left, sent_right), labels
 
 
