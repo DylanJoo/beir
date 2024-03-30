@@ -1,9 +1,10 @@
 import logging
 from typing import Optional
 from .losses import MSELoss # PointwiseMSE and DistillationMSE
-from .losses import PairwiseHingeLoss, GroupwiseHingeLoss
+from .losses import HingeLoss, GroupwiseHingeLoss
 from .losses import CELoss, GroupwiseCELoss # PairwiseCE and GroupwiseCE
 from .losses import GroupwiseHingeLossV1, GroupwiseCELossV1
+from .losses import InbatchBCELoss
 from dataclasses import dataclass
 
 @dataclass
@@ -16,10 +17,41 @@ class LossHandler:
     dilation: int = 1
     logger: logging = None
 
-    def loss(self, loss_name, batchwise=False):
+    def loss(self, loss_name='', query_centric=False):
+
+        if query_centric:
+            self.logger.info("Below is the query_centric objective")
+        else:
+            self.logger.info("Below is the document_centric objective")
 
         loss_fct = None
         n = self.examples_per_group
+
+        # Pooled BCE
+        if 'groupwise_bce' in loss_name:
+            self.logger.info("Using objective: InbatchBCELogitsLoss")
+            loss_fct = InbatchBCELoss(
+                    examples_per_group=n,
+                    reduction=self.reduction,
+                    batch_size=self.batch_size if query_centric else None
+            )
+        if 'groupwise_bce_hard' in loss_name:
+            self.logger.info("Using objective: InbatchBCELogitsLoss hard")
+            loss_fct = InbatchBCELoss(
+                    examples_per_group=n,
+                    reduction='none',
+                    batch_size=self.batch_size if query_centric else None,
+                    negative_selection='hard',
+            )
+        if 'groupwise_bce_random' in loss_name:
+            self.logger.info("Using objective: InbatchBCELogitsLoss random")
+            loss_fct = InbatchBCELoss(
+                    examples_per_group=n,
+                    reduction='none',
+                    batch_size=self.batch_size if query_centric else None,
+                    negative_selection='random',
+            )
+
         # Hinge
         if 'pairwise_hinge' in loss_name:
             self.logger.info("Using objective: PairwiseHingeLoss")
@@ -53,37 +85,29 @@ class LossHandler:
                     reduction=self.reduction,
                 )
         if 'groupwise_ce' in loss_name:
+            self.logger.info("Using objective: CELoss")
+            loss_fct = CELoss(
+                    examples_per_group=n, 
+                    reduction=self.reduction,
+                    batch_size=self.batch_size if query_centric else None # use the doc batch as dim1
+            )
+        if 'groupwise_ce_pair' in loss_name:
             self.logger.info("Using objective: GroupwiseCELoss")
             loss_fct = GroupwiseCELoss(
                     examples_per_group=n, 
                     reduction=self.reduction
             )
-        if 'groupwise_ce_all' in loss_name:
-            self.logger.info("Using objective: CELoss")
-            loss_fct = CELoss(
-                    examples_per_group=n, 
-                    reduction=self.reduction,
-                    batchsize=self.batch_size if batchwise else None
-            )
-        if 'groupwise_ce_v1' in loss_name:
-            self.logger.info("Using objective: GroupwiseCELossV1")
-            loss_fct = GroupwiseCELossV1(
-                    examples_per_group=n, 
-                    margin=self.margin,
-                    stride=self.stride,
-                    dilation=self.dilation,
-                    reduction=self.reduction
-            )
 
-        # BCE MSE (binary) Distillaion-MSE
+        # Naive loss
         if 'pointwise_bce' in loss_name:
             self.logger.info("Using objective: BCELogitsLoss")
             loss_fct = None # default in sentence bert
         if 'pointwise_mse' in loss_name:
             self.logger.info("Using objective: PointwiseMSELoss")
             loss_fct = MSELoss(reduction=self.reduction)
-        if 'distillation_mse' in loss_name:
-            self.logger.info("Using objective: DistillationMSELoss")
-            loss_fct = MSELoss(reduction=self.reduction)
+        # if 'distillation_mse' in loss_name:
+        #     self.logger.info("Using objective: DistillationMSELoss")
+        #     loss_fct = MSELoss(reduction=self.reduction)
+
 
         return loss_fct

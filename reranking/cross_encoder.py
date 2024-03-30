@@ -26,6 +26,7 @@ class StandardCrossEncoder(CrossEncoder):
         classifier_dropout: float = None,
         query_centric: bool = False,
         document_centric: bool = False,
+        change_dc_to_qq: bool = False,
     ):
         super().__init__(
                 model_name, num_labels, max_length, 
@@ -34,17 +35,18 @@ class StandardCrossEncoder(CrossEncoder):
         )
         self.query_centric = query_centric
         self.document_centric = document_centric
+        self.change_dc_to_qq = change_dc_to_qq
+
+    def perge(self, init_name):
+        self.model.bert = self.model.bert.from_pretrained(init_name)
 
     def compute_loss(
         self, 
         features,
         labels,
-        loss_fct=None,
+        loss_fct,
         activation_fct=nn.Identity(),
     ):
-        if loss_fct is None:
-            loss_fct = nn.BCEWithLogitsLoss() if self.config.num_labels == 1 else nn.CrossEntropyLoss()
-
         if features is not None:
             model_predictions = self.model(**features, return_dict=True)
             logits = activation_fct(model_predictions.logits)
@@ -145,18 +147,15 @@ class StandardCrossEncoder(CrossEncoder):
             self.model.train()
 
             # [NOTE] add bidirectional training
-            # for features, labels in tqdm(
-            #     train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
-            # ):
-            for features_qc, labels_qc, features_dc, labels_dc in tqdm(
+            for features_dc, labels_dc, features_qc, labels_qc in tqdm(
                 train_dataloader, desc="Iteration", smoothing=0.05, disable=not show_progress_bar
             ):
                 if use_amp:
                     with autocast():
                         # [NOTE] add bidirectional training
-                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
                         loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
-                        loss_value = loss_value_qc + loss_value_dc
+                        loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+                        loss_value = loss_value_dc + loss_value_qc # normal addition
 
                     scale_before_step = scaler.get_scale()
                     scaler.scale(loss_value).backward()
@@ -168,20 +167,16 @@ class StandardCrossEncoder(CrossEncoder):
                     skip_scheduler = scaler.get_scale() != scale_before_step
                 else:
                     # [NOTE] add bidirectional training
-                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
                     loss_value_dc = self.compute_loss(features_dc, labels_dc, loss_fct_dc)
-                    loss_value = loss_value_qc + loss_value_dc
+                    loss_value_qc = self.compute_loss(features_qc, labels_qc, loss_fct_qc)
+                    loss_value = loss_value_dc + loss_value_qc # normal addition
 
                     loss_value.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
                 
                 if training_steps % 100 == 0:
-                    wandb.log({"loss": loss_value})
-                    if loss_value_qc:
-                        wandb.log({"loss_qc": loss_value_qc})
-                    if loss_value_dc:
-                        wandb.log({"loss_dc": loss_value_dc})
+                    wandb.log({"loss": loss_value, "loss_qc": loss_value_qc, "loss_dc": loss_value_dc})
 
                 optimizer.zero_grad()
 
@@ -195,13 +190,13 @@ class StandardCrossEncoder(CrossEncoder):
                         evaluator, output_path, save_best_model, epoch, training_steps, callback
                     )
 
-                    wandb.log({"eval_mean_mrr": score})
+                    wandb.log({"eval_score": score})
                     self.model.zero_grad()
                     self.model.train()
 
             if evaluator is not None:
                 score = self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
-                wandb.log({"eval_mean_mrr": score})
+                wandb.log({"eval_score": score})
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         if evaluator is not None:
@@ -217,10 +212,8 @@ class StandardCrossEncoder(CrossEncoder):
 class PACECrossEncoder(StandardCrossEncoder):
 
     def smart_batching_collate(self, batch):
-
         # document centric
         tokenized_dc = labels_dc = None
-        labels_dc = []
         if self.document_centric:
             (texts_0, texts_1), scores = self.collate_from_inputs(batch)
             tokenized_dc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
@@ -235,7 +228,6 @@ class PACECrossEncoder(StandardCrossEncoder):
             tokenized_qc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
             tokenized_qc.to(self._target_device)
             labels_qc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
-
         return tokenized_dc, labels_dc, tokenized_qc, labels_qc
 
     def collate_from_inputs(self, batch, query_is_center=False):
@@ -250,14 +242,18 @@ class PACECrossEncoder(StandardCrossEncoder):
                     sent_right.append(text.strip()) 
                     labels.append(example.labels[i])
                 else:
-                    sent_left.append(text.strip()) 
-                    sent_right.append(center)
-                    labels.append(example.labels[i])
-
+                    if self.change_dc_to_qq:
+                        # fixed the left as positive query
+                        sent_left.append(example.texts[0].strip()) 
+                        sent_right.append(text)
+                        labels.append(example.labels[i])
+                    else:
+                        sent_left.append(text.strip()) 
+                        sent_right.append(center)
+                        labels.append(example.labels[i])
         return (sent_left, sent_right), labels
 
 
-# [test] add smart batch collate function
 def _reverse_batch_negative(batch):
     batch_return = []
 
@@ -270,7 +266,7 @@ def _reverse_batch_negative(batch):
         ibnegatives = centers[:i] + centers[(i+1):]
 
         for i, (side, label) in enumerate(zip(sides, labels)):
-            # So far, we use only the first one.
+            # [NOTE] So far, we use only the first one.
             if i == 0:
                 batch_return.append(GroupInputExample(
                     center=side, 

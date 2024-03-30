@@ -1,5 +1,8 @@
-QCDC=groupwise_bce
-variant=${QCDC}
+# 1. QQ classification
+# QC: Query-InBatchDocNegative; DC: Query-GeneratedHardQueryNegative
+QC=groupwise_bce_hard
+DC=groupwise_bce
+variant=${QC}-${DC}
 # for data in baseline calibrate;do
 for data in calibrate;do
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
@@ -10,24 +13,29 @@ for data in calibrate;do
             setting=${setting##*/}
             setting=${setting%.*}
             qrels=/work/jhju/beir-runs/qrels.beir-v1.0.0-$name.test.txt 
-            bm25=/work/jhju/beir-runs/qrels.beir-v1.0.0-$name.test.txt 
 
-            python reranking/cross_encoder_train_test.py \
+            python reranking/cross_encoder_train.py \
                 --dataset datasets/$name \
                 --pseudo_queries $file \
-                --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
+                --output_path checkpoints/pacerr_minilm_$variant/$name/$setting \
                 --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
-                --batch_size 16 \
-                --max_length 384 \
+                --batch_size 8 \
                 --num_epochs 2 \
                 --learning_rate 7e-6 \
                 --do_eval \
                 --qrels $qrels \
                 --filtering '{"name": "top_bottom", "n1": 1, "n2": 1}' \
-                --objective groupwise_bce \
+                --query_centric --objective_qc $QC \
+                --document_centric --objective_dc $DC \
+                --change_dc_to_qq \
                 --save_last \
-                --device cuda 
+                --device cuda
         done
     done
 done
 
+# 2. Enhance document repl from negative query -- BCE version
+# QC: Query-InBatchDocNegative; DC: GeneratedHardQueryNegative-Doc (as negative)
+
+# 3. Enhance document repl from negative query -- BCE version
+# QC: Query-InBatchDocNegative; DC: GeneratedHardQueryNegative-Doc (as positive)

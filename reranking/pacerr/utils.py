@@ -3,6 +3,7 @@ import collections
 import logging
 import tqdm
 import json
+import numpy as np
 
 class LoggingHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
@@ -27,8 +28,8 @@ def load_corpus(path):
             title = data.get('title', "").strip()
             text = data.get('text', "").strip()
             corpus[str(docid)] = title + " " + text
-    print('Example document:', title + " " + text, \
-            '\ntotal amount', len(corpus))
+    # print('Example document:', title + " " + text, \
+    #         '\ntotal amount', len(corpus))
     return corpus
 
 def load_queries(path):
@@ -39,8 +40,8 @@ def load_queries(path):
             qid = data['_id']
             text = data['text'].strip()
             queries[str(qid)] = text
-    print('Example query:', text, \
-            '\ntotal amount', len(queries))
+    # print('Example query:', text, \
+    #         '\ntotal amount', len(queries))
     return queries
 
 def load_pseudo_queries(path):
@@ -55,8 +56,8 @@ def load_pseudo_queries(path):
             # sort by (given) scores (from large to small)
             pcentric_queries[str(docid)] = sorted(to_return, key=lambda x: x[1], reverse=True) 
 
-    print('Example pseudo query:', texts[0], scores[0], \
-            '\ntotal amount', len(pcentric_queries))
+    # print('Example pseudo query:', texts[0], scores[0], \
+    #         '\ntotal amount', len(pcentric_queries))
     return pcentric_queries
 
 def load_results(path, topk=2000):
@@ -67,30 +68,50 @@ def load_results(path, topk=2000):
             if int(rank) <= topk:
                 input_run[str(qid)].append(str(docid))
 
-    print('Example run', (qid, docid, rank, score), \
-            'total amount', len(input_run))
+    # print('Example run', (qid, docid, rank, score), \
+    #         'total amount', len(input_run))
     return input_run
 
-def load_and_convert_qrels(path, queries, corpus_texts):
-    q_positives = collections.defaultdict(list)
-    q_negatives = collections.defaultdict(list)
+def load_and_convert_qrels(path, queries, corpus_texts, use_random_negatives=None, use_bm25_negatives=False):
+    if use_bm25_negatives:
+        doc_to_rerank = load_results(use_bm25_negatives, topk=100)
+    else:
+        doc_to_rerank = collections.defaultdict(list)
+
+    positives = collections.defaultdict(list)
+    negatives = collections.defaultdict(list)
+    all_negative_docids = []
 
     # load qrels
     with open(path, 'r') as f:
         for line in f:
             qid, _, docid, rel = line.strip().split()
             if int(rel) > 0:
-                q_positives[qid].append(corpus_texts[docid].strip())
+                positives[qid].append(corpus_texts[docid].strip())
+                try:
+                    doc_to_rerank[qid].remove(docid)
+                except:
+                    pass
             else:
-                q_negatives[qid].append(corpus_texts[docid].strip())
+                negatives[qid].append(corpus_texts[docid].strip())
+                all_negative_docids.append(docid)
+
+    # add random (in-batch) negatives for evaluation
+    all_negative_docids = list(set(all_negative_docids))
+    N_neg = len(all_negative_docids)
 
     # convert qrels to samples
     sample_list = []
-    for qid in q_positives:
+    for qid in positives:
+        if use_random_negatives:
+            selected_negative_docids = [all_negative_docids[i] for i in np.random.randint(0, N_neg, use_random_negatives)]
+            negatives[qid] += [corpus_texts[docid].strip() for docid in selected_negative_docids]
+        if use_bm25_negatives:
+            negatives[qid] += [corpus_texts[docid].strip() for docid in doc_to_rerank[qid]]
         sample_list.append({
             "query": queries[qid].strip(),
-            "positive": q_positives[qid], 
-            "negative": q_negatives[qid]
+            "positive": positives[qid], 
+            "negative": negatives[qid]
         })
     return sample_list
 

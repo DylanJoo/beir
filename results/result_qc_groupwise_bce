@@ -1,0 +1,39 @@
+baseline_bs4_top1-20000_qc_groupwise_bce.scidocs.txt 0.1678
+baseline_bs4_top2-20000_qc_groupwise_bce.scidocs.txt 0.1661
+baseline_bs4_top4-20000_qc_groupwise_bce.scidocs.txt 0.1654
+calibrate_margin_ibn_dd-20000_qc_groupwise_bce.scidocs.txt 0.1650
+calibrate_margin_ibn_na-20000_qc_groupwise_bce.scidocs.txt 0.1693
+calibrate_margin_ibn_qd-20000_qc_groupwise_bce.scidocs.txt 0.1671
+calibrate_rank_ibn_dd-20000_qc_groupwise_bce.scidocs.txt 0.1635
+calibrate_rank_ibn_na-20000_qc_groupwise_bce.scidocs.txt 0.1708
+calibrate_rank_ibn_qd-20000_qc_groupwise_bce.scidocs.txt 0.1657
+
+baseline_bs4_top1-20000_qc_groupwise_bce_hard.scidocs.txt 0.1677
+baseline_bs4_top2-20000_qc_groupwise_bce_hard.scidocs.txt 0.1673
+baseline_bs4_top4-20000_qc_groupwise_bce_hard.scidocs.txt 0.1668
+calibrate_margin_ibn_dd-20000_qc_groupwise_bce_hard.scidocs.txt 0.1650
+calibrate_margin_ibn_na-20000_qc_groupwise_bce_hard.scidocs.txt 0.1705
+calibrate_margin_ibn_qd-20000_qc_groupwise_bce_hard.scidocs.txt 0.1692
+calibrate_rank_ibn_dd-20000_qc_groupwise_bce_hard.scidocs.txt 0.1638
+calibrate_rank_ibn_na-20000_qc_groupwise_bce_hard.scidocs.txt 0.1705
+calibrate_rank_ibn_qd-20000_qc_groupwise_bce_hard.scidocs.txt 0.1680
+
+baseline_bs4_top1-20000_qc_groupwise_bce_random.scidocs.txt 0.1618
+baseline_bs4_top2-20000_qc_groupwise_bce_random.scidocs.txt 0.1633
+baseline_bs4_top4-20000_qc_groupwise_bce_random.scidocs.txt 0.1605
+calibrate_margin_ibn_dd-20000_qc_groupwise_bce_random.scidocs.txt 0.1636
+calibrate_margin_ibn_na-20000_qc_groupwise_bce_random.scidocs.txt 0.1632
+calibrate_margin_ibn_qd-20000_qc_groupwise_bce_random.scidocs.txt 0.1611
+calibrate_rank_ibn_dd-20000_qc_groupwise_bce_random.scidocs.txt 0.1589
+calibrate_rank_ibn_na-20000_qc_groupwise_bce_random.scidocs.txt 0.1651
+calibrate_rank_ibn_qd-20000_qc_groupwise_bce_random.scidocs.txt 0.1618
+
+baseline_bs4_top1-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1677
+baseline_bs4_top2-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1664
+baseline_bs4_top4-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1661
+calibrate_margin_ibn_dd-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1650
+calibrate_margin_ibn_na-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1679
+calibrate_margin_ibn_qd-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1677
+calibrate_rank_ibn_dd-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1638
+calibrate_rank_ibn_na-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1661
+calibrate_rank_ibn_qd-20000_qc_groupwise_bce_hard_small_lr.scidocs.txt 0.1668

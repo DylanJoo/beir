@@ -1,0 +1,29 @@
+baseline_bs4_top1-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1626
+baseline_bs4_top2-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1601
+baseline_bs4_top4-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1552
+calibrate_margin_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1460
+calibrate_margin_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1576
+calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1511
+calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1652
+calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1608
+calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1511
+
+baseline_bs4_top1-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1642
+baseline_bs4_top2-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1636
+baseline_bs4_top4-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1616
+calibrate_margin_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1549
+calibrate_margin_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1628
+calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1535
+calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1627
+calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1615
+calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1407
+
+baseline_bs4_top1-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1568
+baseline_bs4_top2-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1625
+baseline_bs4_top4-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1567
+calibrate_margin_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1580
+calibrate_margin_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1585
+calibrate_margin_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1576
+calibrate_rank_ibn_dd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1578
+calibrate_rank_ibn_na-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1583
+calibrate_rank_ibn_qd-20000_bi_groupwise_ce-groupwise_hinge_v1.scidocs.txt 0.1534
