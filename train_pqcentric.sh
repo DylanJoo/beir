@@ -1,7 +1,6 @@
-QC=groupwise_bce_hard
-DC=groupwise_bce
-# QQ=-qq
-variant=_${QC}-${DC}
+variant=_groupwise_bce_hard
+
+# [NOTE] this is not exactly the pacerr, still independent
 # for data in baseline calibrate;do
 for data in calibrate;do
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
@@ -17,7 +16,7 @@ for data in calibrate;do
             python reranking/cross_encoder_train.py \
                 --dataset datasets/$name \
                 --pseudo_queries $file \
-                --output_path checkpoints/pacerr_minilm$variant-theotherisqq/$name/$setting \
+                --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
                 --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
                 --batch_size 8 \
                 --max_length 384 \
@@ -27,8 +26,12 @@ for data in calibrate;do
                 --qrels $qrels \
                 --run_bm25 $run_bm25 \
                 --filtering '{"name": "top_bottom", "n1": 1, "n2": 1}' \
-                --query_centric --objective_qc $QC \
-                --document_centric --objective_dc $DC \
+                --query_centric \
+                --objective_qc groupwise_bce_hard \
+                --document_centric \
+                --objective_dc hinge \
+                --margin 0 \
+                --change_dc_to_qq \
                 --device cuda
         done
     done

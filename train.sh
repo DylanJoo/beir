@@ -6,7 +6,6 @@ variant=${QC}-${DC}
 # for data in baseline calibrate;do
 for data in calibrate;do
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
-
     for name in scidocs;do
         for file in $data_dir/$name/*jsonl;do
             setting=${file/.jsonl/}
@@ -24,9 +23,12 @@ for data in calibrate;do
                 --learning_rate 7e-6 \
                 --do_eval \
                 --qrels $qrels \
+                --run_bm25 $run_bm25 \
                 --filtering '{"name": "top_bottom", "n1": 1, "n2": 1}' \
-                --query_centric --objective_qc $QC \
-                --document_centric --objective_dc $DC \
+                --query_centric \
+                --objective_qc groupwise_bce_hard \
+                --document_centric \
+                --objective_dc groupwise_bce \
                 --change_dc_to_qq \
                 --save_last \
                 --device cuda

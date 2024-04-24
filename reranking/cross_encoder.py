@@ -213,9 +213,10 @@ class PACECrossEncoder(StandardCrossEncoder):
 
     def smart_batching_collate(self, batch):
         # document centric
+        ## chnage it d1-q+, d1-q- towards q+, q-
         tokenized_dc = labels_dc = None
         if self.document_centric:
-            (texts_0, texts_1), scores = self.collate_from_inputs(batch)
+            (texts_0, texts_1), scores = self.collate_from_inputs(batch, False)
             tokenized_dc = self.tokenizer(texts_0, texts_1, padding=True, truncation='longest_first', return_tensors="pt", max_length=self.max_length)
             tokenized_dc.to(self._target_device)
             labels_dc = torch.tensor(scores, dtype=torch.float if self.config.num_labels == 1 else torch.long).to(self._target_device)
@@ -238,12 +239,14 @@ class PACECrossEncoder(StandardCrossEncoder):
             center = example.center.strip()
             for i, text in enumerate(example.texts):
                 if query_is_center:
+                    # query centric with document from other batch
                     sent_left.append(center) 
                     sent_right.append(text.strip()) 
                     labels.append(example.labels[i])
                 else:
+                    # document centric with queris d [q1, q2, ...qn]
+                    # fixed the left as positive query
                     if self.change_dc_to_qq:
-                        # fixed the left as positive query
                         sent_left.append(example.texts[0].strip()) 
                         sent_right.append(text)
                         labels.append(example.labels[i])

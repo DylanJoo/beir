@@ -16,6 +16,7 @@ class LossHandler:
     stride: int = 1
     dilation: int = 1
     logger: logging = None
+    temperature: float = 1.0
 
     def loss(self, loss_name='', query_centric=False):
 
@@ -43,19 +44,21 @@ class LossHandler:
                     batch_size=self.batch_size if query_centric else None,
                     negative_selection='hard',
             )
-        if 'groupwise_bce_random' in loss_name:
-            self.logger.info("Using objective: InbatchBCELogitsLoss random")
-            loss_fct = InbatchBCELoss(
-                    examples_per_group=n,
-                    reduction='none',
-                    batch_size=self.batch_size if query_centric else None,
-                    negative_selection='random',
-            )
+
+        # [deprecated] random is inferior
+        # if 'groupwise_bce_random' in loss_name:
+        #     self.logger.info("Using objective: InbatchBCELogitsLoss random")
+        #     loss_fct = InbatchBCELoss(
+        #             examples_per_group=n,
+        #             reduction='none',
+        #             batch_size=self.batch_size if query_centric else None,
+        #             negative_selection='random',
+        #     )
 
         # Hinge
-        if 'pairwise_hinge' in loss_name:
-            self.logger.info("Using objective: PairwiseHingeLoss")
-            loss_fct = PairwiseHingeLoss(
+        if 'hinge' in loss_name:
+            self.logger.info("Using objective: HingeLoss")
+            loss_fct = HingeLoss(
                     examples_per_group=n,
                     margin=self.margin, 
                     reduction=self.reduction
@@ -78,25 +81,30 @@ class LossHandler:
             )
 
         # CE
-        if 'pairwise_ce' in loss_name:
-            self.logger.info("Using objective: CELoss with Paired")
-            loss_fct = CELoss(
-                    examples_per_group=self.examples_per_group, 
-                    reduction=self.reduction,
-                )
-        if 'groupwise_ce' in loss_name:
+        if 'contrastive' in loss_name:
             self.logger.info("Using objective: CELoss")
             loss_fct = CELoss(
                     examples_per_group=n, 
                     reduction=self.reduction,
-                    batch_size=self.batch_size if query_centric else None # use the doc batch as dim1
+                    batch_size=self.batch_size if query_centric else None, # use the doc batch as dim1
+                    temperature=self.temperature
             )
-        if 'groupwise_ce_pair' in loss_name:
+        if 'groupwise_contrastive_pair' in loss_name:
             self.logger.info("Using objective: GroupwiseCELoss")
             loss_fct = GroupwiseCELoss(
                     examples_per_group=n, 
-                    reduction=self.reduction
+                    reduction=self.reduction,
+                    temperature=self.temperature
             )
+
+        # [deprecated] pairwise ce is not efficient. waste gradients
+        # if 'pairwise_contrastive' in loss_name:
+        #     self.logger.info("Using objective: CELoss with Paired")
+        #     loss_fct = CELoss(
+        #             examples_per_group=self.examples_per_group, 
+        #             reduction=self.reduction,
+        #             temperature=self.temperature
+        #         )
 
         # Naive loss
         if 'pointwise_bce' in loss_name:
@@ -105,7 +113,8 @@ class LossHandler:
         if 'pointwise_mse' in loss_name:
             self.logger.info("Using objective: PointwiseMSELoss")
             loss_fct = MSELoss(reduction=self.reduction)
-        # if 'distillation_mse' in loss_name:
+
+        # [deprecated] 'distillation_mse' in loss_name:
         #     self.logger.info("Using objective: DistillationMSELoss")
         #     loss_fct = MSELoss(reduction=self.reduction)
 

@@ -45,6 +45,7 @@ if __name__ == '__main__':
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
     parser.add_argument("--change_dc_to_qq", action='store_true', default=False)
+    parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--reduction", type=str, default='mean')
     # evaluation
     parser.add_argument("--do_eval", action='store_true', default=False)
@@ -142,7 +143,8 @@ if __name__ == '__main__':
             reduction=args.reduction,
             stride=1,
             dilation=1,
-            logger=logging
+            logger=logging,
+            temperature=args.temperature
     )
     loss_fct_dc = loss_handler.loss(args.objective_dc, False)
     loss_fct_qc = loss_handler.loss(args.objective_qc, True)

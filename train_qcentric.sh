@@ -1,4 +1,4 @@
-variant=_qc_groupwise_bce_hard
+variant=_qc_contrastive_lower_tau
 for data in baseline calibrate;do
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
     for name in scidocs;do
@@ -21,9 +21,10 @@ for data in baseline calibrate;do
                 --do_eval \
                 --qrels $qrels \
                 --run_bm25 $run_bm25 \
-                --filtering '{"name": "top", "num": 1}' \
+                --filtering '{"name": "top_bottom", "n1": 1, "n2": 1}' \
                 --query_centric \
-                --objective_qc groupwise_bce_hard \
+                --objective_qc contrastive-lower-tau \
+                --temperature 0.5 \
                 --device cuda
         done
     done
