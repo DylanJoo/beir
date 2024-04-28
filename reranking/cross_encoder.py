@@ -185,6 +185,7 @@ class StandardCrossEncoder(CrossEncoder):
 
                 training_steps += 1
 
+                # default evaluation and saving flow
                 if evaluator is not None and evaluation_steps > 0 and training_steps % evaluation_steps == 0:
                     score = self._eval_during_training(
                         evaluator, output_path, save_best_model, epoch, training_steps, callback
@@ -197,6 +198,8 @@ class StandardCrossEncoder(CrossEncoder):
             if evaluator is not None:
                 score = self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
                 wandb.log({"eval_score": score})
+                output_path_epoch = os.path.join(output_path, str(epoch))
+                self.save(output_path_epoch)
 
     def _eval_during_training(self, evaluator, output_path, save_best_model, epoch, steps, callback):
         if evaluator is not None:

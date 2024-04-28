@@ -175,7 +175,8 @@ if __name__ == '__main__':
             evaluation_steps=len(train_dataloader) // 5,
             warmup_steps=len(train_dataloader) // 10,
             optimizer_params={'lr': args.learning_rate},
-            output_path=args.output_path, # only save when evaluation
+            output_path=args.output_path, # only save when evaluation --> only save per epoch
+            save_best_model=False,
             use_amp=True,
             wandb=wandb
     )
