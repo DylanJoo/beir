@@ -1,6 +1,6 @@
-CUDA_VISIBLE_DEVICES=0
+CUDA_VISIBLE_DEVICES=1
 # variant=_qc_contrastive
-variant=_qc_groupwise_bce_all
+variant=_qc_groupwise_bce_hard
 
 for data in calibrate;do
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
@@ -27,7 +27,7 @@ for data in calibrate;do
                 --run_bm25 $run_bm25 \
                 --filtering '{"name": "top_bottom", "n1": 1, "n2": 1}' \
                 --query_centric \
-                --objective_qc groupwise_bce \
+                --objective_qc groupwise_bce_hard \
                 --device cuda
         done
     done

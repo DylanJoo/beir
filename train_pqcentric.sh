@@ -1,5 +1,8 @@
 CUDA_VISIBLE_DEVICES=1
-variant=_groupwise_bce_hard-bce
+# variant=_groupwise_bce_hard-groupwise_hinge_n2=3
+# variant=_groupwise_bce_hard-groupwise_hinge_v1_n2=3
+# variant=_groupwise_bce_hard-hinge_QQ_margin=1
+variant=_groupwise_bce_hard-hinge_QQ_margin=1_hinge_n2=3
 
 # [NOTE] this is not exactly the pacerr, still independent
 # for data in baseline calibrate;do
@@ -30,9 +33,9 @@ for data in calibrate;do
                 --query_centric \
                 --objective_qc groupwise_bce_hard \
                 --document_centric \
-                --objective_dc groupwise_bce \
+                --objective_dc groupwise_hinge \
                 --change_dc_to_qq \
-                --margin 0 \
+                --margin 1 \
                 --device cuda
         done
     done

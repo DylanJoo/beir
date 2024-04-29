@@ -249,11 +249,14 @@ class PACECrossEncoder(StandardCrossEncoder):
                 else:
                     # document centric with queris d [q1, q2, ...qn]
                     # fixed the left as positive query
+                    ## Option1: set the postiive as self-consistent
+                    ## Option2: set the postiive as truth qd pair
                     if self.change_dc_to_qq:
+                    # if self.change_dc_to_qq and i != 0:
                         sent_left.append(example.texts[0].strip()) 
                         sent_right.append(text)
                         labels.append(example.labels[i])
-                    else:
+                    else: # i==0 if change_dc_to_qq
                         sent_left.append(text.strip()) 
                         sent_right.append(center)
                         labels.append(example.labels[i])
@@ -271,9 +274,10 @@ def _reverse_batch_negative(batch):
         positive = [centers[i]]
         ibnegatives = centers[:i] + centers[(i+1):]
 
-        for i, (side, label) in enumerate(zip(sides, labels)):
-            # [NOTE] So far, we use only the first one.
-            if i == 0:
+        for j, (side, label) in enumerate(zip(sides, labels)):
+            # [NOTE] So far, we use only the first query as positive
+            # other (j > 0) are considered as negative
+            if j == 0:
                 batch_return.append(GroupInputExample(
                     center=side, 
                     texts=positive+ibnegatives,
