@@ -1,15 +1,29 @@
-## THIS NEEDS TO BE REVISED BEFORE USE. use run_train.sh instead
+# runing exps
+
+# 32314 cuda 0
+# CUDA_VISIBLE_DEVICES=0
+# variant=_groupwise_bce_hard-hinge_QQ_v2
+# decoding=greedy
+
+# # 30173 cuda 0
+CUDA_VISIBLE_DEVICES=0
+variant=_groupwise_bce_hard-hinge_QQ_v2
+decoding=top10
+
+# # 30173 cuda 1
 CUDA_VISIBLE_DEVICES=1
-variant=_groupwise_bce_hard-hinge_QQ
+variant=_groupwise_bce_hard-hinge_QQ_v2 # this one is messed up. rename _groupwise_bce_hard-hinge_QQ with v2 when done
+decoding=beam3
 
-# [NOTE] this is not exactly the pacerr, still independent
-for data in baseline calibrate;do
-    # original data_dir
-    data_dir=/work/jhju/readqg-flan-t5-readqg-$data
-    # data_dir=/work/jhju/readqg-results/
 
-    for name in scidocs;do
-        for file in $data_dir/${name}/${data}*jsonl;do
+for data in calibrate baseline;do
+    data_dir=/work/jhju/readqg-results/
+
+    # for name in scidocs;do
+    for name in arguana fiqa nfcorpus scifact scidocs;do
+
+        model_dir=/work/jhju/oodrerank.readqg.${decoding}
+        for file in $data_dir/${name}_${decoding}/${data}*jsonl;do
             setting=${file/.jsonl/}
             setting=${setting##*/}
             setting=${setting%.*}
@@ -19,7 +33,7 @@ for data in baseline calibrate;do
             python reranking/cross_encoder_train.py \
                 --dataset datasets/$name \
                 --pseudo_queries $file \
-                --output_path checkpoints/pacerr_minilm$variant/$name/$setting \
+                --output_path ${model_dir}/pacerr_minilm$variant/$name/$setting \
                 --model_name cross-encoder/ms-marco-MiniLM-L-6-v2 \
                 --batch_size 8 \
                 --max_length 384 \
@@ -32,9 +46,9 @@ for data in baseline calibrate;do
                 --query_centric \
                 --objective_qc groupwise_bce_hard \
                 --document_centric \
-                --objective_dc groupwise_hinge \
+                --objective_dc hinge \
                 --change_dc_to_qq \
-                --margin 1 \
+                --margin 0 \
                 --device cuda
         done
     done

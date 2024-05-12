@@ -3,10 +3,11 @@
 data_dir=/work/jhju/beir-runs
 # data_dir=/home/jhju/pyserini/topics-and-qrels
 
-pseudo_q=$1
-objective=$2
-for name in scidocs arguana fiqa nfcorpus scifact;do
-    for run in run.pacerr.top100/*$pseudo_q*$objective*$name*;do
+decoding=$1
+pseudo_q=$2
+objective=$3
+for name in nfcorpus fiqa arguana scidocs scifact;do
+    for run in run.pacerr.top100.readqg.${decoding}/*$pseudo_q*$objective*$name*;do
         echo ${run##*/}
         ~/trec_eval-9.0.7/trec_eval \
             -c -m ndcg_cut.10 \

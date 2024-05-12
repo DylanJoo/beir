@@ -1,19 +1,22 @@
-CUDA_VISIBLE_DEVICES=0
+CUDA_VISIBLE_DEVICES=1
 mkdir -p run.pacerr.top100
 
 data_dir=/work/jhju/beir-runs
 pseudo_q=$1
 objective=$2
+decoding=top10
+decoding=beam3
+decoding=greedy
 # for name in scidocs;do
-for name in arguana fiqa nfcorpus scidocs scifact;do
-# for name in scifact;do
-    for model in checkpoints/pacerr_minilm$objective/$name/$pseudo_q*;do
+for name in nfcorpus fiqa arguana scidocs scifact;do
+    model_dir=/work/jhju/oodrerank.readqg.${decoding}/
+    for model in ${model_dir}/pacerr_minilm$objective/$name/$pseudo_q*;do
         for epoch in 0 1;do
             echo "Pseudo data: " ${model##*/} ${epoch}" | Objective: " $objective
             python reranking/cross_encoder_predict.py \
                 --dataset datasets/$name \
                 --input_run $data_dir/run.beir.bm25-multifield.$name.txt \
-                --output_run run.pacerr.top100/run.beir.${model##*/}${objective}.ep${epoch}.$name.txt \
+                --output_run run.pacerr.top100.readqg.${decoding}/run.beir.${model##*/}${objective}.ep${epoch}.$name.txt \
                 --top_k 100 \
                 --model_name $model/$epoch \
                 --batch_size 100 \

@@ -45,6 +45,7 @@ if __name__ == '__main__':
     parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
     parser.add_argument("--change_dc_to_qq", action='store_true', default=False)
+    parser.add_argument("--q_self_as_anchor", action='store_true', default=False)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--reduction", type=str, default='mean')
     # evaluation
@@ -70,7 +71,8 @@ if __name__ == '__main__':
                                     max_length=args.max_length,
                                     query_centric=args.query_centric,
                                     document_centric=args.document_centric,
-                                    change_dc_to_qq=args.change_dc_to_qq)
+                                    change_dc_to_qq=args.change_dc_to_qq,
+                                    q_self_as_anchor=args.q_self_as_anchor)
 
     #### Add wandb 
     if args.debug:

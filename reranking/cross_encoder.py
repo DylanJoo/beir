@@ -27,6 +27,7 @@ class StandardCrossEncoder(CrossEncoder):
         query_centric: bool = False,
         document_centric: bool = False,
         change_dc_to_qq: bool = False,
+        q_self_as_anchor: bool = False
     ):
         super().__init__(
                 model_name, num_labels, max_length, 
@@ -36,6 +37,7 @@ class StandardCrossEncoder(CrossEncoder):
         self.query_centric = query_centric
         self.document_centric = document_centric
         self.change_dc_to_qq = change_dc_to_qq
+        self.q_self_as_anchor = q_self_as_anchor
 
     def perge(self, init_name):
         self.model.bert = self.model.bert.from_pretrained(init_name)
@@ -251,14 +253,18 @@ class PACECrossEncoder(StandardCrossEncoder):
                     # fixed the left as positive query
                     ## Option1: set the postiive as self-consistent
                     ## Option2: set the postiive as truth qd pair
-                    if self.change_dc_to_qq:
-                    # if self.change_dc_to_qq and i != 0:
+                    if self.change_dc_to_qq and i != 0:
+                        # if self.q_similarity_as_anchor:
                         sent_left.append(example.texts[0].strip()) 
                         sent_right.append(text)
                         labels.append(example.labels[i])
-                    else: # i==0 if change_dc_to_qq
-                        sent_left.append(text.strip()) 
-                        sent_right.append(center)
+                    else: # i==0 and qq self anchor
+                        if self.q_self_as_anchor:
+                            sent_left.append(example.texts[0].strip()) 
+                            sent_right.append(example.texts[0].strip())
+                        else: # i == 0 and qd as anchor
+                            sent_left.append(text.strip()) 
+                            sent_right.append(center)
                         labels.append(example.labels[i])
         return (sent_left, sent_right), labels
 
