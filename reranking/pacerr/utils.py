@@ -28,8 +28,8 @@ def load_corpus(path):
             title = data.get('title', "").strip()
             text = data.get('text', "").strip()
             corpus[str(docid)] = title + " " + text
-    # print('Example document:', title + " " + text, \
-    #         '\ntotal amount', len(corpus))
+    print('Example document:', title + " " + text, \
+            '\ntotal amount', len(corpus))
     return corpus
 
 def load_queries(path):
@@ -87,7 +87,10 @@ def load_and_convert_qrels(path, queries, corpus_texts, use_random_negatives=Non
         for line in f:
             qid, _, docid, rel = line.strip().split()
             if int(rel) > 0:
-                positives[qid].append(corpus_texts[docid].strip())
+                try:
+                    positives[qid].append(corpus_texts[docid].strip())
+                except:
+                    print(f'the document {docid} was not found')
                 try:
                     doc_to_rerank[qid].remove(docid)
                 except:

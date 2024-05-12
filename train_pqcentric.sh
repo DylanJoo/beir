@@ -1,16 +1,15 @@
+## THIS NEEDS TO BE REVISED BEFORE USE. use run_train.sh instead
 CUDA_VISIBLE_DEVICES=1
-# variant=_groupwise_bce_hard-groupwise_hinge_n2=3
-# variant=_groupwise_bce_hard-groupwise_hinge_v1_n2=3
-# variant=_groupwise_bce_hard-hinge_QQ_margin=1
-variant=_groupwise_bce_hard-hinge_QQ_margin=1_hinge_n2=3
+variant=_groupwise_bce_hard-hinge_QQ
 
 # [NOTE] this is not exactly the pacerr, still independent
-# for data in baseline calibrate;do
-for data in calibrate;do
+for data in baseline calibrate;do
+    # original data_dir
     data_dir=/work/jhju/readqg-flan-t5-readqg-$data
+    # data_dir=/work/jhju/readqg-results/
 
     for name in scidocs;do
-        for file in $data_dir/$name/*jsonl;do
+        for file in $data_dir/${name}/${data}*jsonl;do
             setting=${file/.jsonl/}
             setting=${setting##*/}
             setting=${setting%.*}

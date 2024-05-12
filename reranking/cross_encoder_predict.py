@@ -40,7 +40,7 @@ if __name__ == '__main__':
     f = open(args.output_run, 'w')
     time_taken_all = {}
 
-    for query_id in queries:
+    for query_id in results:
         query = queries[query_id]
         result = results[query_id]
         

@@ -153,6 +153,7 @@ if __name__ == '__main__':
     start = datetime.datetime.now()
 
     #### Add evaluation
+    logging.info(f'Loading the evaluation dataset...if provided')
     evaluator = None
     if args.do_eval:
         queries = load_queries(os.path.join(args.dataset, 'queries.jsonl'))

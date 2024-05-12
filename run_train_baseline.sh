@@ -1,17 +1,17 @@
 # runing exps
 
-# 32314 cuda 0
-CUDA_VISIBLE_DEVICES=0
-variant=_groupwise_bce_hard-hinge_QQ
-
 # 32314 cuda 1
-CUDA_VISIBLE_DEVICES=1
-variant=_groupwise_bce_hard-hinge_QQ
+CUDA_VISIBLE_DEVICES=0
+variant=_groupwise_bce_hard
+
+# 30173
+# CUDA_VISIBLE_DEVICES=1
+# variant=_groupwise_bce_hard-hinge_QQ
 
 for data in baseline calibrate;do
     # data_dir=/work/jhju/readqg-flan-t5-readqg-$data
     data_dir=/work/jhju/readqg-results/
-    decoding=greedy
+    decoding=_beam3
 
     # for name in scidocs;do
     for name in arguana fiqa nfcorpus scifact scidocs;do
@@ -41,6 +41,7 @@ for data in baseline calibrate;do
                 --objective_qc groupwise_bce_hard \
                 --document_centric \
                 --objective_dc hinge \
+                --change_dc_to_qq \
                 --margin 0 \
                 --device cuda
         done

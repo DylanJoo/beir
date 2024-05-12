@@ -1,9 +1,12 @@
+CUDA_VISIBLE_DEVICES=0
 mkdir -p run.pacerr.top100
 
 data_dir=/work/jhju/beir-runs
 pseudo_q=$1
 objective=$2
-for name in scidocs;do
+# for name in scidocs;do
+for name in arguana fiqa nfcorpus scidocs scifact;do
+# for name in scifact;do
     for model in checkpoints/pacerr_minilm$objective/$name/$pseudo_q*;do
         for epoch in 0 1;do
             echo "Pseudo data: " ${model##*/} ${epoch}" | Objective: " $objective

@@ -5,8 +5,8 @@ data_dir=/work/jhju/beir-runs
 
 pseudo_q=$1
 objective=$2
-for name in scidocs;do
-    for run in run.pacerr.top100/*$pseudo_q*$objective*;do
+for name in scidocs arguana fiqa nfcorpus scifact;do
+    for run in run.pacerr.top100/*$pseudo_q*$objective*$name*;do
         echo ${run##*/}
         ~/trec_eval-9.0.7/trec_eval \
             -c -m ndcg_cut.10 \
