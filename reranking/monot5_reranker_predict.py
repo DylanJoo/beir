@@ -7,8 +7,8 @@ import datetime
 import logging
 import argparse 
 
-from utils import load_queries, load_corpus, load_results
-from utils import LoggingHandler
+from pacerr.utils import load_queries, load_corpus, load_results
+from pacerr.utils import LoggingHandler
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

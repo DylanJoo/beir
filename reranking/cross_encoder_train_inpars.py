@@ -42,10 +42,10 @@ if __name__ == '__main__':
     parser.add_argument("--objective_dc", type=str, default='')
     parser.add_argument("--objective_qc", type=str, default='')
     parser.add_argument("--query_centric", action='store_true', default=False)
-    # parser.add_argument("--document_centric", action='store_true', default=False)
+    parser.add_argument("--document_centric", action='store_true', default=False)
     parser.add_argument("--margin", type=int, default=1)
-    # parser.add_argument("--change_dc_to_qq", action='store_true', default=False)
-    # parser.add_argument("--q_self_as_anchor", action='store_true', default=False)
+    parser.add_argument("--change_dc_to_qq", action='store_true', default=False)
+    parser.add_argument("--q_self_as_anchor", action='store_true', default=False)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--reduction", type=str, default='mean')
     # evaluation
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     os.environ["WANDB_PROJECT"] = 'baseline_inpars'
     wandb.init(
-            name=f"{args.pseudo_queries.split('/')[-1]}-{objectives}",
+            name=f"{args.pseudo_queries.split('/')[-1]}",
             config=reranker.config
     )
     wandb.watch(reranker.model, log_freq=10)

@@ -1,13 +1,15 @@
 CUDA_VISIBLE_DEVICES=1
-mkdir -p run.pacerr.top100
 
 data_dir=/work/jhju/beir-runs
 pseudo_q=$1
 objective=$2
-decoding=top10
-decoding=beam3
-decoding=greedy
-# for name in scidocs;do
+# decoding=top10
+# decoding=beam3 # run QQv2 before revise the file name
+# decoding=greedy
+decoding=others # inpars has only two epoch results
+
+mkdir -p run.pacerr.top100.readqg.${decoding}
+
 for name in nfcorpus fiqa arguana scidocs scifact;do
     model_dir=/work/jhju/oodrerank.readqg.${decoding}/
     for model in ${model_dir}/pacerr_minilm$objective/$name/$pseudo_q*;do
@@ -18,7 +20,7 @@ for name in nfcorpus fiqa arguana scidocs scifact;do
                 --input_run $data_dir/run.beir.bm25-multifield.$name.txt \
                 --output_run run.pacerr.top100.readqg.${decoding}/run.beir.${model##*/}${objective}.ep${epoch}.$name.txt \
                 --top_k 100 \
-                --model_name $model/$epoch \
+                --model_name $model/${epoch} \
                 --batch_size 100 \
                 --device cuda
             echo -e
