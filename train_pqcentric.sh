@@ -1,9 +1,9 @@
 # runing exps
 
-# 32314 cuda 0
-CUDA_VISIBLE_DEVICES=0
+# 30173 cuda 1
+CUDA_VISIBLE_DEVICES=1
 variant=_groupwise_bce_hard-hinge_QQ_v2
-decoding=greedy
+decoding=top10
 
 # # 30173 cuda 0
 # CUDA_VISIBLE_DEVICES=0
@@ -17,7 +17,7 @@ decoding=greedy
 
 
 # for data in calibrate baseline;do
-for data in prompt;do
+for data in selfconsist;do
     data_dir=/work/jhju/readqg-results/
 
     # for name in scidocs;do
