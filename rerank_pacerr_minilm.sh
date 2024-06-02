@@ -3,7 +3,7 @@ CUDA_VISIBLE_DEVICES=1
 data_dir=/work/jhju/beir-runs
 pseudo_q=$1
 objective=$2
-decoding=top10
+decoding=greedy
 # decoding=beam3 
 # decoding=greedy
 # decoding=others # inpars has only two epoch results
@@ -12,7 +12,7 @@ mkdir -p run.pacerr.top100.readqg.${decoding}
 
 for name in nfcorpus fiqa arguana scidocs scifact;do
     model_dir=/work/jhju/oodrerank.readqg.${decoding}/
-    for model in ${model_dir}/pacerr_minilm$objective/$name/*$pseudo_q*;do
+    for model in ${model_dir}/pacerr_minilm$objective/$name/$pseudo_q*;do
         for epoch in 0 1;do
             echo "Pseudo data: " ${model##*/} ${epoch}" | Objective: " $objective
             python reranking/cross_encoder_predict.py \

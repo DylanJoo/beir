@@ -18,3 +18,24 @@ baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scifact.txt 0.7
 baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scifact.txt 0.7196
 baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scifact.txt 0.7112
 baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scifact.txt 0.7152
+
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.nfcorpus.txt 0.3523
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.nfcorpus.txt 0.3547
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.nfcorpus.txt 0.3511
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.nfcorpus.txt 0.3532
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.fiqa.txt 0.3323
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.fiqa.txt 0.3333
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.fiqa.txt 0.3446
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.fiqa.txt 0.3436
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.arguana.txt 0.4990
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.arguana.txt 0.4915
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.arguana.txt 0.4932
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.arguana.txt 0.4909
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scidocs.txt 0.1699
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scidocs.txt 0.1687
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scidocs.txt 0.1688
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scidocs.txt 0.1685
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scifact.txt 0.7044
+run.beir.baseline_selfconsist_dd-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scifact.txt 0.7090
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep0.scifact.txt 0.7011
+run.beir.baseline_selfconsist_na-20000_groupwise_bce_hard-hinge_QQ_v2.ep1.scifact.txt 0.7067

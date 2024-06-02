@@ -1,30 +1,32 @@
 # runing exps
 
-# 30173 cuda 1
+# 32314 cuda 1 self-consist with greedy
+CUDA_VISIBLE_DEVICES=0
+variant=_groupwise_bce_hard-hinge_QQ_v2
+decoding=greedy
 CUDA_VISIBLE_DEVICES=1
 variant=_groupwise_bce_hard-hinge_QQ_v2
-decoding=top10
+decoding=greedy
 
-# # 30173 cuda 0
-# CUDA_VISIBLE_DEVICES=0
+# 32314 cuda 0 top10 with prompt 1 and 10 
+# CUDA_VISIBLE_DEVICES=1
 # variant=_groupwise_bce_hard-hinge_QQ_v2
 # decoding=top10
-
-# # 30173 cuda 1
-# CUDA_VISIBLE_DEVICES=1
-# variant=_groupwise_bce_hard-hinge_QQ_v2 # this one is messed up. rename _groupwise_bce_hard-hinge_QQ with v2 when done
-# decoding=beam3
-
+#
+# # 30173 cuda 1 top 10 with prompt 0
+# CUDA_VISIBLE_DEVICES=0
+# variant=_groupwise_bce_hard-hinge_QQ_v2
+# decoding=greedy
 
 # for data in calibrate baseline;do
-for data in selfconsist;do
+for data in prompt_1-;do
     data_dir=/work/jhju/readqg-results/
 
     # for name in scidocs;do
     for name in arguana fiqa nfcorpus scifact scidocs;do
 
         model_dir=/work/jhju/oodrerank.readqg.${decoding}
-        for file in $data_dir/${name}_${decoding}/*${data}*jsonl;do
+        for file in $data_dir/${name}_${decoding}/*${data}*.jsonl;do
             setting=${file/.jsonl/}
             setting=${setting##*/}
             setting=${setting%.*}
