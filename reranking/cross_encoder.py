@@ -258,11 +258,11 @@ class PACECrossEncoder(StandardCrossEncoder):
                         sent_left.append(example.texts[0].strip()) 
                         sent_right.append(text)
                         labels.append(example.labels[i])
-                    else: # i==0 and qq self anchor
+                    else: # i==0 and qq as anchor
                         if self.q_self_as_anchor:
                             sent_left.append(example.texts[0].strip()) 
                             sent_right.append(example.texts[0].strip())
-                        else: # i == 0 and qd as anchor
+                        else: # i==0 and qd as anchor (normal setting)
                             sent_left.append(text.strip()) 
                             sent_right.append(center)
                         labels.append(example.labels[i])

@@ -1,10 +1,7 @@
 data_dir=/work/jhju/beir-runs
 
-# for name in arguana climate-fever dbpedia-entity fiqa nfcorpus scidocs scifact trec-covid webis-touche2020;do
 for model in ms-marco-MiniLM-L-6-v2;do
-# for model in ms-marco-MiniLM-L-6-v2 monot5-base-msmarco-10k;do
     echo $model 
-    # for name in arguana climate-fever scidocs trec-covid webis-touche2020;do
     for name in scidocs;do
         echo -e $name " ";
         ~/trec_eval-9.0.7/trec_eval \
